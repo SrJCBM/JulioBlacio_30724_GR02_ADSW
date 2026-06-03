@@ -132,6 +132,16 @@ Ambos patrones reducen acoplamiento y respetan la arquitectura de tres capas:
 presentacion usa `ControlEstudiante`, logica coordina adapters/decorators y datos
 mantiene el repositorio y la entrada externa simulada.
 
+## Matriz de trazabilidad global integrada
+
+| Requisito / entrada | U2T1 Arquitectura | U2T2 Patrones estructurales | U2T3 Patrones de comportamiento | Evidencia final | Control de coherencia |
+| --- | --- | --- | --- | --- | --- |
+| RF priorizados del CRUD | Se implementan operaciones base del estudiante: registrar, consultar, actualizar y eliminar. | Se adaptan entradas externas y se extienden funcionalidades del CRUD. | Se agregan eventos del CRUD y estrategias de busqueda. | Codigo, diagramas PlantUML y pruebas de consola. | Ningun patron debe aparecer sin requisito asociado. |
+| RNF de mantenibilidad | Se separan responsabilidades por capas. | Se reducen cambios directos con Adapter y Decorator. | Se facilita el cambio de comportamiento con Observer y Strategy. | Justificacion tecnica en los README. | La solucion debe ser mas flexible, no mas compleja innecesariamente. |
+| Arquitectura | Se definen Presentacion, Logica de negocio, Datos y Modelo. | Los patrones estructurales se insertan respetando las capas. | Los patrones de comportamiento se ubican principalmente en la logica de negocio. | Esquemas PlantUML actualizados. | La presentacion no debe asumir responsabilidades de datos o reglas complejas. |
+| Diseno orientado a objetos | Se identifican clases, metodos y responsabilidades. | Se aplican patrones estructurales Adapter y Decorator. | Se aplican patrones de comportamiento Observer y Strategy. | Diagramas de clases/componentes. | Los diagramas deben coincidir con la implementacion. |
+| Evidencias de funcionamiento | Se ejecuta el CRUD base. | Se demuestra adaptacion y extension. | Se demuestra notificacion y cambio de estrategia. | Capturas, pruebas o demos de consola. | Cada evidencia debe vincularse a una tarea y requisito. |
+
 ## Como ejecutar
 
 Desde PowerShell, ubicarse en la carpeta padre de `Implementacion`, es decir,

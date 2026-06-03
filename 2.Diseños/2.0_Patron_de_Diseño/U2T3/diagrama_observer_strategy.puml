@@ -1,0 +1,91 @@
+@startuml
+title U2T3 - Observer y Strategy en CRUD Estudiante
+
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+package "presentacion" {
+  class CRUDEstudiantesGUI
+  class PruebaObserverStrategy
+}
+
+package "logica" {
+  class ControlEstudiante {
+    - servicioCrud: ServicioCrudEstudiante
+    - adaptadorEntrada: AdaptadorEntradaEstudiante
+    - observadores: List<ObservadorEstudiante>
+    - estrategiaBusqueda: EstrategiaBusquedaEstudiante
+    + agregarObservador(observador: ObservadorEstudiante): void
+    + quitarObservador(observador: ObservadorEstudiante): void
+    + notificarObservadores(evento: EventoEstudiante): void
+    + cambiarEstrategiaBusqueda(estrategia: EstrategiaBusquedaEstudiante): void
+    + buscarEstudiantes(criterio: String): List<Estudiante>
+  }
+
+  interface ObservadorEstudiante {
+    + actualizar(evento: EventoEstudiante): void
+  }
+
+  interface SujetoEventosEstudiante
+  class EventoEstudiante
+  enum TipoEventoEstudiante
+  class ObservadorAuditoriaEstudiante <<Observer>>
+  class ObservadorNotificacionEstudiante <<Observer>>
+
+  interface EstrategiaBusquedaEstudiante {
+    + buscar(estudiantes: List<Estudiante>, criterio: String): List<Estudiante>
+    + getNombre(): String
+  }
+
+  class BusquedaPorIdStrategy <<Strategy>>
+  class BusquedaPorNombreStrategy <<Strategy>>
+
+  interface ServicioCrudEstudiante
+  class CrudEstudianteBase
+  abstract class DecoradorCrudEstudiante
+  class ValidacionCrudEstudianteDecorator
+  class AuditoriaCrudEstudianteDecorator
+  interface AdaptadorEntradaEstudiante
+  class AdaptadorEstudianteExterno
+}
+
+package "datos" {
+  class EstudianteExterno
+  class RepositorioEstudiante
+}
+
+package "modelo" {
+  class Estudiante
+}
+
+CRUDEstudiantesGUI --> ControlEstudiante
+PruebaObserverStrategy --> ControlEstudiante
+
+ControlEstudiante ..|> SujetoEventosEstudiante
+SujetoEventosEstudiante ..> ObservadorEstudiante
+ControlEstudiante o--> ObservadorEstudiante
+ObservadorEstudiante <|.. ObservadorAuditoriaEstudiante
+ObservadorEstudiante <|.. ObservadorNotificacionEstudiante
+ControlEstudiante ..> EventoEstudiante
+EventoEstudiante --> TipoEventoEstudiante
+EventoEstudiante --> Estudiante
+
+ControlEstudiante --> EstrategiaBusquedaEstudiante
+EstrategiaBusquedaEstudiante <|.. BusquedaPorIdStrategy
+EstrategiaBusquedaEstudiante <|.. BusquedaPorNombreStrategy
+BusquedaPorIdStrategy ..> Estudiante
+BusquedaPorNombreStrategy ..> Estudiante
+
+ControlEstudiante --> ServicioCrudEstudiante
+ControlEstudiante --> AdaptadorEntradaEstudiante
+AdaptadorEntradaEstudiante <|.. AdaptadorEstudianteExterno
+AdaptadorEstudianteExterno ..> EstudianteExterno
+AdaptadorEstudianteExterno ..> Estudiante
+ServicioCrudEstudiante <|.. CrudEstudianteBase
+ServicioCrudEstudiante <|.. DecoradorCrudEstudiante
+DecoradorCrudEstudiante o--> ServicioCrudEstudiante
+DecoradorCrudEstudiante <|-- ValidacionCrudEstudianteDecorator
+DecoradorCrudEstudiante <|-- AuditoriaCrudEstudianteDecorator
+CrudEstudianteBase --> RepositorioEstudiante
+RepositorioEstudiante o--> Estudiante
+@enduml
