@@ -202,7 +202,7 @@ Reglas principales implementadas:
 - Actualizar dinamicamente el grafico al seleccionar un atleta.
 - Mantener PHP nativo y Vanilla JS, incorporando Chart.js solo como libreria visual por CDN.
 
-## Trabajo en Progreso (WIP)
+## Trabajo en Progreso (WIP) - Release 1
 
 ### Fase de Pruebas Integrales y Preparacion para Despliegue
 
@@ -224,6 +224,68 @@ No quedan modulos funcionales pendientes para el Release 1. La siguiente fase co
 ## Cierre de Release 1
 
 Con la finalizacion de REQ004-3 se da por concluido el desarrollo del **Release 1** del MVP de IronClad Box. Este release cubre exitosamente los casos de uso principales de los tres actores del sistema: **Administrador**, **Entrenador** y **Atleta**.
+
+## Release 2
+
+El Release 2 inicia la ampliacion del sistema hacia capacidades colaborativas, incorporando comunicacion interna entre entrenadores y atletas sin alterar la arquitectura base del MVP.
+
+## Modulos Completados - Release 2
+
+### [x] REQ005: Comunicacion entre entrenadores y atletas (RQ-05)
+
+Objetivo del requerimiento:
+
+Permitir que los entrenadores envien mensajes directos o anuncios generales, y que los atletas consulten una bandeja de entrada con los mensajes recibidos.
+
+| Tipo | Archivo |
+| --- | --- |
+| Entidad | `3.Codigo/models/Mensaje.php` |
+| Service | `3.Codigo/services/ComunicacionService.php` |
+| DAO | `3.Codigo/dao/ComunicacionDAO.php` |
+| Controller | `3.Codigo/controllers/ComunicacionController.php` |
+| HTML Entrenador | `3.Codigo/views/comunicacion_entrenador.html` |
+| JS Entrenador | `3.Codigo/assets/js/comunicacion_entrenador.js` |
+| HTML Atleta | `3.Codigo/views/bandeja_atleta.html` |
+| JS Atleta | `3.Codigo/assets/js/bandeja_atleta.js` |
+
+Reglas principales implementadas:
+
+- Enviar mensajes individuales a un atleta especifico.
+- Enviar anuncios generales a todos los atletas.
+- Validar entrenador remitente y atleta destinatario.
+- Persistir mensajes en la tabla `mensajes`.
+- Consultar bandeja de entrada por atleta, incluyendo mensajes directos y anuncios.
+- Consultar historial de mensajes enviados por entrenadores.
+
+## Trabajo en Progreso (WIP) - Release 2
+
+### [ ] REQ006: Generacion de reportes administrativos (Uso de ReporteBuilder)
+
+Objetivo del requerimiento:
+
+Permitir que el administrador genere reportes filtrados por fechas y tipo, visualice resultados preliminares y exporte datos administrativos.
+
+Componentes en construccion:
+
+| Tipo | Archivo |
+| --- | --- |
+| Entidad | `3.Codigo/models/Reporte.php` |
+| Builder | `3.Codigo/builders/ReporteBuilder.php` |
+| Service | `3.Codigo/services/ReporteService.php` |
+| DAO | `3.Codigo/dao/ReporteDAO.php` |
+| Controller | `3.Codigo/controllers/ReporteController.php` |
+| HTML Administrador | `3.Codigo/views/reportes_admin.html` |
+| JS Administrador | `3.Codigo/assets/js/reportes_admin.js` |
+
+Reglas de negocio objetivo:
+
+- Generar reportes de `Finanzas` y `Asistencia`.
+- Aplicar filtros por fecha inicio y fecha fin.
+- Consolidar datos mediante consultas JOIN en el DAO.
+- Construir el resultado final con `ReporteBuilder`.
+- Devolver JSON para visualizacion en pantalla.
+- Exportar CSV nativo mediante cabeceras HTTP.
+- Preparar salida PDF mediante impresion de pantalla del navegador.
 
 ## Validaciones Tecnicas Realizadas
 

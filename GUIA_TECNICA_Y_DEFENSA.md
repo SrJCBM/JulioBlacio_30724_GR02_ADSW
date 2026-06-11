@@ -8,6 +8,8 @@
 - **Entrenador:** registra y consulta el progreso deportivo de los atletas.
 - **Atleta:** reserva clases, consulta y renueva su membresia, registra su progreso personal y visualiza su evolucion deportiva.
 
+El proyecto escala ahora al **Release 2**, incorporando un modulo de comunicacion interna para conectar entrenadores y atletas mediante mensajes directos y anuncios generales.
+
 El sistema fue construido como un prototipo funcional de arquitectura limpia, con separacion estricta entre interfaz, controladores, logica de negocio y acceso a datos.
 
 ## 2. Arquitectura y Stack Tecnologico
@@ -34,6 +36,7 @@ Ejemplos defendibles:
 - `MembresiaBuilder` valida tipo, precio, estado y calcula vencimientos.
 - `UsuarioBuilder` valida email, rol, estado y aplica `password_hash`.
 - `RegistroProgresoBuilder` permite registrar WODs con atributos opcionales como tiempo, repeticiones o peso, pero impide registros completamente vacios.
+- `ReporteBuilder` construye reportes complejos con filtros de fecha, tipo de consulta y variantes de salida sin duplicar logica entre visualizacion, CSV o PDF.
 
 El beneficio tecnico es que las entidades llegan a la capa DAO en un estado consistente, reduciendo errores antes de persistir datos.
 
@@ -91,6 +94,20 @@ http://127.0.0.1:8000/views/gestion_membresias.html
 2. Registrar pago.
 3. Explicar que `MembresiaService` reutiliza `MembresiaBuilder`.
 4. Al pagar, el sistema cambia el estado a `Pagado` y calcula automaticamente una nueva fecha de vencimiento a 30 dias.
+
+Luego abrir reportes administrativos:
+
+```text
+http://127.0.0.1:8000/views/reportes_admin.html
+```
+
+1. Seleccionar el tipo de reporte: `Finanzas` o `Asistencia`.
+2. Seleccionar fecha inicio y fecha fin.
+3. Generar el reporte para visualizar resultados preliminares.
+4. Explicar que `ReporteController.php` delega en `ReporteService.php`.
+5. `ReporteService` consulta datos consolidados en `ReporteDAO.php` y construye la salida mediante `ReporteBuilder`.
+6. Exportar resultados con `Exportar CSV`.
+7. Usar `Exportar PDF` para imprimir o guardar la vista desde el navegador.
 
 ### Demostracion del Entrenador
 
@@ -169,6 +186,44 @@ Este endpoint devuelve JSON con:
 
 Chart.js solo se usa como componente visual. La arquitectura backend se mantiene igual: el controller consulta el historial mediante `ProgresoService` y `ProgresoDAO`.
 
+### Demostracion de Comunicacion REQ005
+
+#### Entrenador
+
+Abrir:
+
+```text
+http://127.0.0.1:8000/views/comunicacion_entrenador.html
+```
+
+1. Seleccionar un entrenador remitente.
+2. Elegir el tipo de comunicacion:
+   - `Mensaje individual` para un atleta especifico.
+   - `Anuncio general` para todos los atletas.
+3. Redactar el contenido.
+4. Enviar el mensaje.
+5. Explicar que la peticion llega a `ComunicacionController.php`, que delega en `ComunicacionService.php`.
+6. `ComunicacionService` valida entrenador, destinatario y contenido.
+7. `ComunicacionDAO` persiste el mensaje en la tabla `mensajes`.
+8. Mostrar el historial enviado en la misma pantalla.
+
+#### Atleta
+
+Abrir:
+
+```text
+http://127.0.0.1:8000/views/bandeja_atleta.html
+```
+
+1. Seleccionar el atleta destinatario.
+2. Visualizar su bandeja de entrada.
+3. Confirmar que aparecen:
+   - mensajes directos enviados a ese atleta,
+   - anuncios generales enviados a todos.
+4. Explicar que esta pantalla consume `ComunicacionController.php?action=recibidos&idAtleta=...`.
+
+Este flujo demuestra la conexion entre actores: el entrenador emite comunicacion desde su panel y el atleta la recibe desde su bandeja.
+
 ## 5. Instrucciones de Ejecucion
 
 ### Requisitos
@@ -193,6 +248,7 @@ Administrador:
 http://127.0.0.1:8000/views/gestion_clases.html
 http://127.0.0.1:8000/views/gestion_membresias.html
 http://127.0.0.1:8000/views/gestion_usuarios.html
+http://127.0.0.1:8000/views/reportes_admin.html
 ```
 
 Entrenador:
@@ -207,6 +263,13 @@ Atleta:
 http://127.0.0.1:8000/views/reservas_atleta.html
 http://127.0.0.1:8000/views/progreso_atleta.html
 http://127.0.0.1:8000/views/membresia_atleta.html
+http://127.0.0.1:8000/views/bandeja_atleta.html
+```
+
+Comunicacion:
+
+```text
+http://127.0.0.1:8000/views/comunicacion_entrenador.html
 ```
 
 ### Validacion rapida
@@ -216,8 +279,9 @@ http://127.0.0.1:8000/views/membresia_atleta.html
 3. Reservar clase como atleta.
 4. Registrar progreso como entrenador o atleta.
 5. Revisar grafico de evolucion.
+6. Enviar un mensaje como entrenador y leerlo desde la bandeja del atleta.
+7. Generar un reporte administrativo y exportarlo a CSV/PDF.
 
 ## Nota de Cierre
 
 El **Release 1** del MVP queda funcionalmente completo. El sistema cubre los casos de uso principales de **Administrador**, **Entrenador** y **Atleta**, manteniendo una arquitectura clara con **MVC**, **Builder**, **DAO** y **PDO**.
-
