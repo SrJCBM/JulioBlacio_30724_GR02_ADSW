@@ -1,91 +1,118 @@
 @startuml
-title U2T3 - Observer y Strategy en CRUD Estudiante
+title U2T3 - Integracion U2T1, U2T2 y U2T3\nCRUD Estudiante con Observer y Strategy
+
+left to right direction
 
 skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam linetype ortho
 skinparam classAttributeIconSize 0
 
-package "presentacion" {
-  class CRUDEstudiantesGUI
-  class PruebaObserverStrategy
+skinparam rectangle {
+  RoundCorner 12
 }
 
-package "logica" {
-  class ControlEstudiante {
-    - servicioCrud: ServicioCrudEstudiante
-    - adaptadorEntrada: AdaptadorEntradaEstudiante
-    - observadores: List<ObservadorEstudiante>
-    - estrategiaBusqueda: EstrategiaBusquedaEstudiante
-    + agregarObservador(observador: ObservadorEstudiante): void
-    + quitarObservador(observador: ObservadorEstudiante): void
-    + notificarObservadores(evento: EventoEstudiante): void
-    + cambiarEstrategiaBusqueda(estrategia: EstrategiaBusquedaEstudiante): void
-    + buscarEstudiantes(criterio: String): List<Estudiante>
-  }
+actor "Administrador\nacademico" as Admin
 
-  interface ObservadorEstudiante {
-    + actualizar(evento: EventoEstudiante): void
-  }
-
-  interface SujetoEventosEstudiante
-  class EventoEstudiante
-  enum TipoEventoEstudiante
-  class ObservadorAuditoriaEstudiante <<Observer>>
-  class ObservadorNotificacionEstudiante <<Observer>>
-
-  interface EstrategiaBusquedaEstudiante {
-    + buscar(estudiantes: List<Estudiante>, criterio: String): List<Estudiante>
-    + getNombre(): String
-  }
-
-  class BusquedaPorIdStrategy <<Strategy>>
-  class BusquedaPorNombreStrategy <<Strategy>>
-
-  interface ServicioCrudEstudiante
-  class CrudEstudianteBase
-  abstract class DecoradorCrudEstudiante
-  class ValidacionCrudEstudianteDecorator
-  class AuditoriaCrudEstudianteDecorator
-  interface AdaptadorEntradaEstudiante
-  class AdaptadorEstudianteExterno
+package "U2T1 - Capa de Presentacion" #E3F2FD {
+  rectangle "CRUDEstudiantesGUI\nCaptura datos y muestra\nresultados del CRUD" as GUI
+  rectangle "PruebaObserverStrategy\nEvidencia Observer\ny Strategy por consola" as Test
 }
 
-package "datos" {
-  class EstudianteExterno
-  class RepositorioEstudiante
+package "U2T1 - Capa de Logica de Negocio" #E8F5E9 {
+  rectangle "ControlEstudiante\nCoordina CRUD, validaciones,\nAdapter, Decorator,\nObserver y Strategy" as Control
 }
 
-package "modelo" {
-  class Estudiante
+package "U2T2 - Patrones Estructurales" #F3E5F5 {
+  rectangle "AdaptadorEntradaEstudiante\n<<Adapter>>\nContrato para convertir\nentradas externas" as AdapterContract
+  rectangle "AdaptadorEstudianteExterno\n<<Adapter>>\nConvierte codigo,\nnombreCompleto, anios\na Estudiante" as Adapter
+
+  rectangle "ServicioCrudEstudiante\nContrato comun del CRUD" as CrudContract
+  rectangle "CrudEstudianteBase\nCRUD base sin reglas\nadicionales" as CrudBase
+  rectangle "DecoradorCrudEstudiante\n<<Decorator>>\nEnvuelve servicios CRUD" as DecoratorBase
+  rectangle "ValidacionCrudEstudianteDecorator\n<<Decorator>>\nValida datos, ID duplicado\ny regla de eliminacion" as ValidationDecorator
+  rectangle "AuditoriaCrudEstudianteDecorator\n<<Decorator>>\nAgrega auditoria a\noperaciones exitosas" as AuditDecorator
 }
 
-CRUDEstudiantesGUI --> ControlEstudiante
-PruebaObserverStrategy --> ControlEstudiante
+package "U2T3 - Patrones de Comportamiento" #FFF3E0 {
+  rectangle "SujetoEventosEstudiante\n<<Observer Subject>>\nAgrega, quita y notifica\nobservadores" as Subject
+  rectangle "EventoEstudiante\nTipo, estudiante\ny mensaje del evento" as Event
+  rectangle "TipoEventoEstudiante\nREGISTRADO\nACTUALIZADO\nELIMINADO" as EventType
+  rectangle "ObservadorEstudiante\n<<Observer>>\nRecibe eventos del CRUD" as ObserverContract
+  rectangle "ObservadorAuditoriaEstudiante\nRegistra eventos en\nbitacora" as AuditObserver
+  rectangle "ObservadorNotificacionEstudiante\nGenera notificaciones\npara la presentacion" as NotificationObserver
 
-ControlEstudiante ..|> SujetoEventosEstudiante
-SujetoEventosEstudiante ..> ObservadorEstudiante
-ControlEstudiante o--> ObservadorEstudiante
-ObservadorEstudiante <|.. ObservadorAuditoriaEstudiante
-ObservadorEstudiante <|.. ObservadorNotificacionEstudiante
-ControlEstudiante ..> EventoEstudiante
-EventoEstudiante --> TipoEventoEstudiante
-EventoEstudiante --> Estudiante
+  rectangle "EstrategiaBusquedaEstudiante\n<<Strategy>>\nContrato de busqueda" as StrategyContract
+  rectangle "BusquedaPorIdStrategy\nBusca por ID" as SearchById
+  rectangle "BusquedaPorNombreStrategy\nBusca por coincidencia\nde nombre" as SearchByName
+}
 
-ControlEstudiante --> EstrategiaBusquedaEstudiante
-EstrategiaBusquedaEstudiante <|.. BusquedaPorIdStrategy
-EstrategiaBusquedaEstudiante <|.. BusquedaPorNombreStrategy
-BusquedaPorIdStrategy ..> Estudiante
-BusquedaPorNombreStrategy ..> Estudiante
+package "U2T1 - Capa de Datos" #FCE4EC {
+  rectangle "RepositorioEstudiante\nPersistencia en memoria:\nguardar, buscar,\nactualizar, eliminar,\nlistar" as Repository
+  rectangle "EstudianteExterno\nFuente externa simulada:\ncodigo, nombreCompleto,\nanios" as ExternalStudent
+}
 
-ControlEstudiante --> ServicioCrudEstudiante
-ControlEstudiante --> AdaptadorEntradaEstudiante
-AdaptadorEntradaEstudiante <|.. AdaptadorEstudianteExterno
-AdaptadorEstudianteExterno ..> EstudianteExterno
-AdaptadorEstudianteExterno ..> Estudiante
-ServicioCrudEstudiante <|.. CrudEstudianteBase
-ServicioCrudEstudiante <|.. DecoradorCrudEstudiante
-DecoradorCrudEstudiante o--> ServicioCrudEstudiante
-DecoradorCrudEstudiante <|-- ValidacionCrudEstudianteDecorator
-DecoradorCrudEstudiante <|-- AuditoriaCrudEstudianteDecorator
-CrudEstudianteBase --> RepositorioEstudiante
-RepositorioEstudiante o--> Estudiante
+package "U2T1 - Modelo" #E0F2F1 {
+  rectangle "Estudiante\nid, nombre, edad" as Student
+}
+
+Admin --> GUI
+GUI --> Control
+Test --> Control
+
+Control --> AdapterContract : adapta entrada externa
+AdapterContract <|.. Adapter
+Adapter --> ExternalStudent
+Adapter --> Student
+
+Control --> CrudContract : ejecuta CRUD decorado
+CrudContract <|.. CrudBase
+CrudContract <|.. DecoratorBase
+DecoratorBase o--> CrudContract
+DecoratorBase <|-- ValidationDecorator
+DecoratorBase <|-- AuditDecorator
+AuditDecorator --> ValidationDecorator : cadena de extension
+ValidationDecorator --> CrudBase : delega si valida
+CrudBase --> Repository
+Repository o--> Student
+
+Control ..|> Subject
+Subject ..> ObserverContract
+Control o--> ObserverContract : mantiene lista
+ObserverContract <|.. AuditObserver
+ObserverContract <|.. NotificationObserver
+Control --> Event : crea evento
+Event --> EventType
+Event --> Student
+AuditObserver --> Event : registra
+NotificationObserver --> Event : notifica
+
+Control --> StrategyContract : usa estrategia actual
+StrategyContract <|.. SearchById
+StrategyContract <|.. SearchByName
+SearchById --> Student
+SearchByName --> Student
+GUI --> SearchById : selecciona
+GUI --> SearchByName : selecciona
+
+note top of Control
+Relacion entre entregas:
+U2T1 define las capas del CRUD.
+U2T2 agrega Adapter y Decorator
+sin romper la arquitectura.
+U2T3 agrega Observer y Strategy
+principalmente en logica de negocio.
+end note
+
+legend right
+|= Color |= Significado |
+|<#E3F2FD>| Presentacion heredada de U2T1 |
+|<#E8F5E9>| Logica de negocio / orquestacion |
+|<#F3E5F5>| U2T2 patrones estructurales |
+|<#FFF3E0>| U2T3 patrones de comportamiento |
+|<#FCE4EC>| Datos / repositorio |
+|<#E0F2F1>| Modelo de dominio |
+endlegend
+
 @enduml

@@ -1,8 +1,9 @@
 <?php
 
+require_once __DIR__ . '/../models/Clase.php';
 require_once __DIR__ . '/../models/Reserva.php';
 
-class ReservaDAO
+class ClaseDAO
 {
     private PDO $conexion;
 
@@ -23,6 +24,7 @@ class ReservaDAO
         $pdo = new PDO('sqlite:' . $rutaBase);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $pdo->exec('PRAGMA foreign_keys = ON;');
 
         return $pdo;
 
@@ -181,6 +183,184 @@ class ReservaDAO
         }
     }
 
+    public function crear(Clase $clase): Clase
+    {
+        $sentencia = $this->conexion->prepare(
+            'INSERT INTO clases
+                (dia, hora, duracion, cupo_maximo, cupos_disponibles, entrenador_id)
+             VALUES
+                (:dia, :hora, :duracion, :cupo_maximo, :cupos_disponibles, :entrenador_id)'
+        );
+
+        $sentencia->execute([
+            'dia' => $clase->getDia(),
+            'hora' => $clase->getHora(),
+            'duracion' => $clase->getDuracion(),
+            'cupo_maximo' => $clase->getCupoMaximo(),
+            'cupos_disponibles' => $clase->getCuposDisponibles(),
+            'entrenador_id' => $clase->getEntrenadorId(),
+        ]);
+
+        return $this->buscarPorId((int) $this->conexion->lastInsertId());
+    }
+
+    public function actualizar(Clase $clase): Clase
+    {
+        $sentencia = $this->conexion->prepare(
+            'UPDATE clases
+                SET dia = :dia,
+                    hora = :hora,
+                    duracion = :duracion,
+                    cupo_maximo = :cupo_maximo,
+                    cupos_disponibles = :cupos_disponibles,
+                    entrenador_id = :entrenador_id
+              WHERE id = :id'
+        );
+
+        $sentencia->execute([
+            'id' => $clase->getId(),
+            'dia' => $clase->getDia(),
+            'hora' => $clase->getHora(),
+            'duracion' => $clase->getDuracion(),
+            'cupo_maximo' => $clase->getCupoMaximo(),
+            'cupos_disponibles' => $clase->getCuposDisponibles(),
+            'entrenador_id' => $clase->getEntrenadorId(),
+        ]);
+
+        return $this->buscarPorId((int) $clase->getId());
+    }
+
+    public function eliminar(int $id): bool
+    {
+        $sentencia = $this->conexion->prepare('DELETE FROM clases WHERE id = :id');
+        $sentencia->execute(['id' => $id]);
+
+        return $sentencia->rowCount() > 0;
+    }
+
+    public function buscarPorId(int $id): ?Clase
+    {
+        $sentencia = $this->conexion->prepare('SELECT * FROM clases WHERE id = :id');
+        $sentencia->execute(['id' => $id]);
+        $fila = $sentencia->fetch();
+
+        return $fila ? Clase::fromArray($fila) : null;
+    }
+
+    public function listar(): array
+    {
+        $sentencia = $this->conexion->query(
+            'SELECT
+                c.*,
+                e.nombre AS entrenador_nombre,
+                e.email AS entrenador_email
+             FROM clases c
+             INNER JOIN entrenadores e ON e.id = c.entrenador_id
+             ORDER BY c.dia ASC, c.hora ASC'
+        );
+
+        return array_map([$this, 'mapearClaseConEntrenador'], $sentencia->fetchAll());
+    }
+
+    public function listarEntrenadores(): array
+    {
+        $sentencia = $this->conexion->query(
+            'SELECT id, nombre, email, disponible FROM entrenadores ORDER BY nombre ASC'
+        );
+
+        return $sentencia->fetchAll();
+    }
+
+    public function entrenadorExisteYDisponible(int $entrenadorId): bool
+    {
+        $sentencia = $this->conexion->prepare(
+            'SELECT COUNT(*) FROM entrenadores WHERE id = :id AND disponible = 1'
+        );
+        $sentencia->execute(['id' => $entrenadorId]);
+
+        return (int) $sentencia->fetchColumn() > 0;
+    }
+
+    public function existeSolapamientoGeneral(
+        string $dia,
+        string $hora,
+        int $duracion,
+        ?int $idIgnorado = null
+    ): bool {
+        return $this->existeSolapamiento($dia, $hora, $duracion, null, $idIgnorado);
+    }
+
+    public function existeSolapamientoEntrenador(
+        string $dia,
+        string $hora,
+        int $duracion,
+        int $entrenadorId,
+        ?int $idIgnorado = null
+    ): bool {
+        return $this->existeSolapamiento($dia, $hora, $duracion, $entrenadorId, $idIgnorado);
+    }
+
+    private function existeSolapamiento(
+        string $dia,
+        string $hora,
+        int $duracion,
+        ?int $entrenadorId,
+        ?int $idIgnorado
+    ): bool {
+        $parametros = [
+            'dia' => $dia,
+            'inicio' => $hora,
+            'fin' => $this->calcularHoraFin($hora, $duracion),
+        ];
+
+        $sql = 'SELECT COUNT(*)
+                  FROM clases
+                 WHERE dia = :dia
+                   AND time(hora) < time(:fin)
+                   AND time(:inicio) < time(hora, "+" || duracion || " minutes")';
+
+        if ($entrenadorId !== null) {
+            $sql .= ' AND entrenador_id = :entrenador_id';
+            $parametros['entrenador_id'] = $entrenadorId;
+        }
+
+        if ($idIgnorado !== null) {
+            $sql .= ' AND id <> :id_ignorado';
+            $parametros['id_ignorado'] = $idIgnorado;
+        }
+
+        $sentencia = $this->conexion->prepare($sql);
+        $sentencia->execute($parametros);
+
+        return (int) $sentencia->fetchColumn() > 0;
+    }
+
+    private function calcularHoraFin(string $hora, int $duracion): string
+    {
+        $inicio = DateTime::createFromFormat('H:i', $hora);
+        $inicio->modify('+' . $duracion . ' minutes');
+
+        return $inicio->format('H:i');
+    }
+
+    private function mapearClaseConEntrenador(array $fila): array
+    {
+        $clase = Clase::fromArray($fila)->toArray();
+        $clase['entrenador'] = [
+            'id' => (int) $fila['entrenador_id'],
+            'nombre' => $fila['entrenador_nombre'],
+            'email' => $fila['entrenador_email'],
+        ];
+
+        return $clase;
+    }
+
+    // ------------------------------------------------------------------
+    // Inscripciones de atletas (reservas) consolidadas en el modulo Clases.
+    // El SQL transaccional vive aqui; la validacion cruzada de membresia se
+    // coordina desde ClaseService usando MembresiaDAO.
+    // ------------------------------------------------------------------
+
     public function listarAtletas(): array
     {
         $sentencia = $this->conexion->query(
@@ -188,6 +368,48 @@ class ReservaDAO
         );
 
         return $sentencia->fetchAll();
+    }
+
+    public function atletaExiste(int $idAtleta): bool
+    {
+        $sentencia = $this->conexion->prepare('SELECT COUNT(*) FROM atletas WHERE id = :id');
+        $sentencia->execute(['id' => $idAtleta]);
+
+        return (int) $sentencia->fetchColumn() > 0;
+    }
+
+    public function claseExiste(int $idClase): bool
+    {
+        $sentencia = $this->conexion->prepare('SELECT COUNT(*) FROM clases WHERE id = :id');
+        $sentencia->execute(['id' => $idClase]);
+
+        return (int) $sentencia->fetchColumn() > 0;
+    }
+
+    public function consultarCupos(int $idClase): ?int
+    {
+        $sentencia = $this->conexion->prepare('SELECT cupos_disponibles FROM clases WHERE id = :id');
+        $sentencia->execute(['id' => $idClase]);
+        $cupos = $sentencia->fetchColumn();
+
+        return $cupos === false ? null : (int) $cupos;
+    }
+
+    public function existeReservaActiva(int $idAtleta, int $idClase): bool
+    {
+        $sentencia = $this->conexion->prepare(
+            'SELECT COUNT(*)
+               FROM reservas
+              WHERE id_atleta = :id_atleta
+                AND id_clase = :id_clase
+                AND estado = "Confirmada"'
+        );
+        $sentencia->execute([
+            'id_atleta' => $idAtleta,
+            'id_clase' => $idClase,
+        ]);
+
+        return (int) $sentencia->fetchColumn() > 0;
     }
 
     public function listarClasesDisponibles(int $idAtleta): array
@@ -240,66 +462,7 @@ class ReservaDAO
         return array_map([$this, 'mapearReservaConClase'], $sentencia->fetchAll());
     }
 
-    public function atletaExiste(int $idAtleta): bool
-    {
-        $sentencia = $this->conexion->prepare('SELECT COUNT(*) FROM atletas WHERE id = :id');
-        $sentencia->execute(['id' => $idAtleta]);
-
-        return (int) $sentencia->fetchColumn() > 0;
-    }
-
-    public function validarMembresiaVigente(int $idAtleta, string $fechaActual): bool
-    {
-        $sentencia = $this->conexion->prepare(
-            'SELECT COUNT(*)
-               FROM membresias
-              WHERE id_atleta = :id_atleta
-                AND estado = "Pagado"
-                AND fecha_vencimiento >= :fecha_actual'
-        );
-        $sentencia->execute([
-            'id_atleta' => $idAtleta,
-            'fecha_actual' => $fechaActual,
-        ]);
-
-        return (int) $sentencia->fetchColumn() > 0;
-    }
-
-    public function consultarCupos(int $idClase): ?int
-    {
-        $sentencia = $this->conexion->prepare('SELECT cupos_disponibles FROM clases WHERE id = :id');
-        $sentencia->execute(['id' => $idClase]);
-        $cupos = $sentencia->fetchColumn();
-
-        return $cupos === false ? null : (int) $cupos;
-    }
-
-    public function claseExiste(int $idClase): bool
-    {
-        $sentencia = $this->conexion->prepare('SELECT COUNT(*) FROM clases WHERE id = :id');
-        $sentencia->execute(['id' => $idClase]);
-
-        return (int) $sentencia->fetchColumn() > 0;
-    }
-
-    public function existeReservaActiva(int $idAtleta, int $idClase): bool
-    {
-        $sentencia = $this->conexion->prepare(
-            'SELECT COUNT(*)
-               FROM reservas
-              WHERE id_atleta = :id_atleta
-                AND id_clase = :id_clase
-                AND estado = "Confirmada"'
-        );
-        $sentencia->execute([
-            'id_atleta' => $idAtleta,
-            'id_clase' => $idClase,
-        ]);
-
-        return (int) $sentencia->fetchColumn() > 0;
-    }
-
-    public function crearReservaYAjustarCupo(int $idAtleta, int $idClase): Reserva
+    public function reservarCupo(int $idAtleta, int $idClase): Reserva
     {
         try {
             $this->conexion->beginTransaction();
@@ -330,7 +493,7 @@ class ReservaDAO
             $idReserva = (int) $this->conexion->lastInsertId();
             $this->conexion->commit();
 
-            return $this->buscarPorId($idReserva);
+            return $this->buscarReservaPorId($idReserva);
         } catch (Throwable $error) {
             if ($this->conexion->inTransaction()) {
                 $this->conexion->rollBack();
@@ -383,7 +546,7 @@ class ReservaDAO
         }
     }
 
-    public function buscarPorId(int $id): ?Reserva
+    public function buscarReservaPorId(int $id): ?Reserva
     {
         $sentencia = $this->conexion->prepare('SELECT * FROM reservas WHERE id = :id');
         $sentencia->execute(['id' => $id]);

@@ -23,6 +23,7 @@ class MembresiaDAO
         $pdo = new PDO('sqlite:' . $rutaBase);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $pdo->exec('PRAGMA foreign_keys = ON;');
 
         return $pdo;
 
@@ -102,7 +103,7 @@ class MembresiaDAO
         return $this->buscarPorId((int) $this->conexion->lastInsertId());
     }
 
-    public function actualizarTrasPago(Membresia $membresia): Membresia
+    public function actualizar(Membresia $membresia): Membresia
     {
         $sentencia = $this->conexion->prepare(
             'UPDATE membresias
@@ -126,6 +127,11 @@ class MembresiaDAO
         ]);
 
         return $this->buscarPorId((int) $membresia->getId());
+    }
+
+    public function actualizarTrasPago(Membresia $membresia): Membresia
+    {
+        return $this->actualizar($membresia);
     }
 
     public function marcarVencidas(string $fechaActual): void

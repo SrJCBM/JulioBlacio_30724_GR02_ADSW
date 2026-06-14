@@ -64,6 +64,39 @@ class MembresiaService
         return $this->membresiaDAO->crear($builder->construir());
     }
 
+    public function actualizar(array $datos): Membresia
+    {
+        $idMembresia = (int) ($datos['id'] ?? $datos['membresiaId'] ?? 0);
+        if ($idMembresia <= 0) {
+            throw new InvalidArgumentException('Debe indicar la membresia a editar.');
+        }
+
+        if (!$this->membresiaDAO->buscarPorId($idMembresia)) {
+            throw new DomainException('La membresia indicada no existe.');
+        }
+
+        $datos = $this->normalizarDatosCreacion($datos);
+
+        if (!$this->membresiaDAO->atletaExiste((int) $datos['idAtleta'])) {
+            throw new DomainException('El atleta seleccionado no existe.');
+        }
+
+        $builder = (new MembresiaBuilder())
+            ->conId($idMembresia)
+            ->asignarAtleta((int) $datos['idAtleta'])
+            ->configurarPlan($datos['tipo'], (float) $datos['precio'])
+            ->definirFechaInicio($datos['fechaInicio'])
+            ->definirEstado($datos['estado']);
+
+        if (!empty($datos['fechaVencimiento'])) {
+            $builder->definirFechaVencimiento($datos['fechaVencimiento']);
+        } else {
+            $builder->calcularFechaVencimiento($datos['fechaInicio']);
+        }
+
+        return $this->membresiaDAO->actualizar($builder->construir());
+    }
+
     public function registrarPago(array $datos): Membresia
     {
         $idMembresia = (int) ($datos['id'] ?? $datos['membresiaId'] ?? 0);

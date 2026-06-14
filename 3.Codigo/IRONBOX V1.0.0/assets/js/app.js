@@ -77,7 +77,7 @@
                 <td>${escaparHtml(formatearFecha(clase.dia))}</td>
                 <td><span class="tag">${escaparHtml(clase.hora)}</span></td>
                 <td>${Number(clase.duracion)} min</td>
-                <td>${Number(clase.cuposDisponibles)} / ${Number(clase.cupoMaximo)}</td>
+                <td>${Number(clase.cupoMaximo) - Number(clase.cuposDisponibles)} ocupados &middot; ${Number(clase.cuposDisponibles)} / ${Number(clase.cupoMaximo)}</td>
                 <td>${escaparHtml(clase.entrenador.nombre)}</td>
                 <td>
                     <div class="row-actions">

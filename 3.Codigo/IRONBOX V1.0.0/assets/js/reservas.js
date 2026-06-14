@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const API_URL = '../controllers/ReservaController.php';
+    const API_URL = '../controllers/ClaseController.php';
 
     const atletaSelect = document.getElementById('idAtleta');
     const refreshButton = document.getElementById('refreshButton');

@@ -53,6 +53,17 @@ try {
             ], 201);
             break;
 
+        case 'editar':
+        case 'actualizar':
+            asegurarPostMembresia();
+            $membresia = $service->actualizar($payload);
+            responderMembresia([
+                'success' => true,
+                'message' => 'Membresia actualizada correctamente.',
+                'data' => $membresia->toArray(),
+            ]);
+            break;
+
         case 'registrarPago':
         case 'pagarMembresia':
             asegurarPostMembresia();

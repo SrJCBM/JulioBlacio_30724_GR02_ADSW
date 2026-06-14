@@ -23,6 +23,7 @@ class ReporteDAO
         $pdo = new PDO('sqlite:' . $rutaBase);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $pdo->exec('PRAGMA foreign_keys = ON;');
 
         return $pdo;
 
@@ -64,7 +65,8 @@ class ReporteDAO
                 duracion INTEGER NOT NULL,
                 cupo_maximo INTEGER NOT NULL,
                 cupos_disponibles INTEGER NOT NULL,
-                entrenador_id INTEGER NOT NULL
+                entrenador_id INTEGER NOT NULL,
+                FOREIGN KEY (entrenador_id) REFERENCES entrenadores(id)
             )'
         );
 
@@ -75,8 +77,9 @@ class ReporteDAO
                 precio REAL NOT NULL,
                 fecha_inicio TEXT NOT NULL,
                 fecha_vencimiento TEXT NOT NULL,
-                estado TEXT NOT NULL,
-                id_atleta INTEGER NOT NULL
+                estado TEXT NOT NULL CHECK (estado IN ("Pagado", "Pendiente", "Vencido")),
+                id_atleta INTEGER NOT NULL,
+                FOREIGN KEY (id_atleta) REFERENCES atletas(id)
             )'
         );
 
@@ -86,7 +89,9 @@ class ReporteDAO
                 id_atleta INTEGER NOT NULL,
                 id_clase INTEGER NOT NULL,
                 fecha_reserva TEXT NOT NULL,
-                estado TEXT NOT NULL
+                estado TEXT NOT NULL CHECK (estado IN ("Confirmada", "Cancelada")),
+                FOREIGN KEY (id_atleta) REFERENCES atletas(id),
+                FOREIGN KEY (id_clase) REFERENCES clases(id)
             )'
         );
 

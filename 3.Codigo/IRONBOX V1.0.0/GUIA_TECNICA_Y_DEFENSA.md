@@ -84,16 +84,31 @@ http://127.0.0.1:8000/views/gestion_clases.html
 
 Para demostrar validacion, intentar crear otra clase en un horario solapado. El sistema debe rechazarla.
 
+> **Guion de defensa:** "Al crear la clase y asignar al entrenador, demostramos el cumplimiento de REQ013 y REQ016. Al intentar solapar horarios o exceder la capacidad, el sistema lo bloquea, demostrando el control de cupos (REQ017) y validacion de horarios (REQ018)."
+
+Luego abrir gestion de usuarios:
+
+```text
+http://127.0.0.1:8000/views/gestion_usuarios.html
+```
+
+1. Crear una cuenta nueva. Con esto se demuestra el **REQ001**, usando `UsuarioBuilder`.
+2. Editar los datos del usuario. Con esto se demuestra el **REQ002**.
+3. Cambiar o asignar rol al usuario (`Administrador`, `Entrenador`, `Atleta`). Esto cubre la granularidad V4 de **REQ004**, **REQ005** y **REQ006**, ya que la matriz de roles se valida en Builder/Service y los flujos se separan por actor.
+4. Desactivar el usuario. Con esto se demuestra el **REQ003**, porque la baja es logica: no se elimina el registro, solo cambia su estado a `Inactivo`.
+
 Luego abrir gestion de membresias:
 
 ```text
 http://127.0.0.1:8000/views/gestion_membresias.html
 ```
 
-1. Asignar una membresia a un atleta.
-2. Registrar pago.
-3. Explicar que `MembresiaService` reutiliza `MembresiaBuilder`.
-4. Al pagar, el sistema cambia el estado a `Pagado` y calcula automaticamente una nueva fecha de vencimiento a 30 dias.
+1. Crear/asignar una membresia a un atleta. Esto cubre **REQ007** y **REQ009**.
+2. Actualizar o renovar una membresia. Esto demuestra **REQ008**.
+3. Registrar pago. Al registrar un pago, estamos cumpliendo con el **REQ010**.
+4. Explicar que `MembresiaService` reutiliza `MembresiaBuilder`.
+5. Al pagar, el sistema cambia el estado a `Pagado` y automaticamente maneja el **REQ012** (Control de vencimientos), extendiendo la fecha a 30 dias.
+6. Consultar la membresia desde la vista administrativa o personal del atleta. Esto cubre **REQ011**.
 
 Luego abrir reportes administrativos:
 
@@ -139,22 +154,21 @@ http://127.0.0.1:8000/views/reservas_atleta.html
 3. Hacer clic en `Reservar`.
 4. Explicar que este es el flujo transaccional mas importante del MVP.
 
-Al reservar, `ReservaService` coordina validaciones cruzadas entre modulos:
+Las reservas **no son un modulo aparte**: su logica vive en la gestion de Clases. La peticion llega a `ClaseController.php?action=reservar`, que delega en `ClaseService`. Al reservar, `ClaseService` coordina la validacion cruzada:
 
-- consulta en `MembresiaDAO` que el atleta tenga membresia `Pagado` y no vencida,
-- consulta en `ClaseDAO`/tablas de clases que existan cupos disponibles,
+- consulta en `MembresiaDAO` que el atleta tenga membresia `Pagado` y no vencida (`buscarActualPorAtleta`),
+- verifica que existan cupos disponibles en la clase,
 - valida que no haya una reserva activa duplicada,
-- crea la reserva en `ReservaDAO`,
-- descuenta 1 cupo disponible de la clase.
+- si todo es correcto, delega en `ClaseDAO->reservarCupo()`, que en **una unica transaccion** (`beginTransaction`) inserta la reserva y resta 1 a `cupos_disponibles`.
 
-Luego cancelar la reserva:
+Luego cancelar la reserva (`ClaseDAO->cancelarReservaYLiberarCupo()`):
 
 - el estado pasa a `Cancelada`,
-- el cupo se libera sumando 1 nuevamente.
+- el cupo se libera sumando 1 nuevamente, dentro de la misma transaccion.
 
-Este flujo demuestra **validacion cruzada**, **consistencia transaccional** y separacion de responsabilidades.
+Este flujo demuestra **validacion cruzada** (Clases consultando a `MembresiaDAO`), **consistencia transaccional** (el SQL vive en `ClaseDAO`) y separacion de responsabilidades sin un modulo de reservas redundante.
 
-### Demostracion Visual REQ004-3
+### Demostración Visual: Gráficos de Progreso
 
 Abrir la vista del atleta:
 
@@ -186,7 +200,7 @@ Este endpoint devuelve JSON con:
 
 Chart.js solo se usa como componente visual. La arquitectura backend se mantiene igual: el controller consulta el historial mediante `ProgresoService` y `ProgresoDAO`.
 
-### Demostracion de Comunicacion REQ005
+### Demostración de Comunicación
 
 #### Entrenador
 
@@ -224,63 +238,66 @@ http://127.0.0.1:8000/views/bandeja_atleta.html
 
 Este flujo demuestra la conexion entre actores: el entrenador emite comunicacion desde su panel y el atleta la recibe desde su bandeja.
 
-## 5. Instrucciones de Ejecucion
+## 5. Walkthrough: Como iniciar el sistema y Flujo de Navegacion
 
-### Requisitos
+### 1. Levantamiento del servidor
+
+Requisitos minimos:
 
 - PHP instalado y disponible en consola.
 - Navegador web moderno.
-- No se requiere instalar MySQL para el prototipo.
+- No se requiere instalar MySQL para el prototipo, porque se usa SQLite local mediante **PDO**.
 
-### Levantar servidor local
+Pasos de inicio:
 
-Desde la carpeta `3.Codigo` ejecutar:
+1. Abrir una terminal en la carpeta raiz del proyecto.
+2. Entrar a la carpeta de codigo:
 
 ```bash
-php -S 127.0.0.1:8000 -t .
+cd 3.Codigo
 ```
 
-### URLs principales
+3. Ejecutar el servidor nativo de PHP:
 
-Administrador:
-
-```text
-http://127.0.0.1:8000/views/gestion_clases.html
-http://127.0.0.1:8000/views/gestion_membresias.html
-http://127.0.0.1:8000/views/gestion_usuarios.html
-http://127.0.0.1:8000/views/reportes_admin.html
+```bash
+php -S localhost:8000
 ```
 
-Entrenador:
+4. Mantener la terminal abierta durante la demostracion. Las vistas quedan disponibles bajo `http://localhost:8000/views/`.
 
-```text
-http://127.0.0.1:8000/views/seguimiento_progreso.html
-```
+### 2. Flujo de Inicio: Orden logico del sistema
 
-Atleta:
+#### Paso A: El Administrador
 
-```text
-http://127.0.0.1:8000/views/reservas_atleta.html
-http://127.0.0.1:8000/views/progreso_atleta.html
-http://127.0.0.1:8000/views/membresia_atleta.html
-http://127.0.0.1:8000/views/bandeja_atleta.html
-```
+1. Abrir `http://localhost:8000/views/gestion_usuarios.html`.
+2. Crear primero las cuentas base del sistema: al menos un **Entrenador** y un **Atleta**. Este paso demuestra la cobertura granular V4 de **REQ001** a **REQ006**: creacion, edicion, desactivacion, roles y permisos.
+3. Abrir `http://localhost:8000/views/gestion_membresias.html`.
+4. Crear o asignar un plan al atleta registrado y simular el pago. Al registrar el pago se cumple **REQ010**, y el sistema ejecuta automaticamente **REQ012** al extender la fecha de vencimiento a 30 dias.
+5. Abrir `http://localhost:8000/views/gestion_clases.html`.
+6. Crear horarios de clase en la agenda, asignando un entrenador y validando disponibilidad, solapamientos y cupos.
 
-Comunicacion:
+Con esto, la creacion de usuarios y membresias cubre del REQ001 al REQ012 de la V4, y la creacion de horarios en la agenda cubre del REQ013 al REQ018 de la V4, logrando la cobertura total del backlog actual.
 
-```text
-http://127.0.0.1:8000/views/comunicacion_entrenador.html
-```
+#### Paso B: El Atleta
 
-### Validacion rapida
+1. Cuando el atleta ya existe y tiene una membresia pagada, abrir `http://localhost:8000/views/reservas_atleta.html`.
+2. Mostrar que el atleta puede ver los horarios creados por el administrador en el paso anterior.
+3. Reservar una clase. En este punto se demuestra la **validacion cruzada**: `ClaseService` verifica la membresia vigente consultando `MembresiaDAO` y delega en `ClaseDAO->reservarCupo()`, que descuenta una plaza disponible al confirmar la reserva dentro de una transaccion, manteniendo la integridad transaccional.
 
-1. Crear clase como administrador.
-2. Asignar y pagar membresia.
-3. Reservar clase como atleta.
-4. Registrar progreso como entrenador o atleta.
-5. Revisar grafico de evolucion.
-6. Enviar un mensaje como entrenador y leerlo desde la bandeja del atleta.
-7. Generar un reporte administrativo y exportarlo a CSV/PDF.
+#### Paso C: El Entrenador
+
+1. Abrir `http://localhost:8000/views/seguimiento_progreso.html`.
+2. Seleccionar al atleta que asistio a la clase.
+3. Registrar los resultados del WOD, usando campos opcionales como tiempo, repeticiones, peso y notas.
+4. Mostrar que el grafico de **Chart.js** se actualiza con la evolucion deportiva del atleta a partir del endpoint JSON de progreso.
+
+#### Paso D: Comunicacion y Reportes
+
+1. Abrir `http://localhost:8000/views/comunicacion_entrenador.html`.
+2. Enviar un mensaje de felicitacion o seguimiento al atleta.
+3. Abrir la bandeja del atleta en `http://localhost:8000/views/bandeja_atleta.html` para comprobar que el mensaje fue recibido.
+4. Abrir `http://localhost:8000/views/reportes_admin.html`.
+5. Seleccionar fecha y tipo de reporte, generar la vista preliminar y exportar el CSV del dia. El boton de PDF queda disponible como salida visual/impresion preparada para la defensa.
 
 ## Nota de Cierre
 

@@ -2,16 +2,19 @@
 
 require_once __DIR__ . '/../builders/ClaseBuilder.php';
 require_once __DIR__ . '/../dao/ClaseDAO.php';
+require_once __DIR__ . '/../dao/MembresiaDAO.php';
 
 class ClaseService
 {
     private const CAPACIDAD_CROSSFIT = 30;
 
     private ClaseDAO $claseDAO;
+    private MembresiaDAO $membresiaDAO;
 
-    public function __construct(?ClaseDAO $claseDAO = null)
+    public function __construct(?ClaseDAO $claseDAO = null, ?MembresiaDAO $membresiaDAO = null)
     {
         $this->claseDAO = $claseDAO ?? new ClaseDAO();
+        $this->membresiaDAO = $membresiaDAO ?? new MembresiaDAO();
     }
 
     public function listar(): array
@@ -60,6 +63,88 @@ class ClaseService
     {
         if (!$this->claseDAO->eliminar($id)) {
             throw new DomainException('La clase solicitada no existe o ya fue eliminada.');
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Inscripciones de atletas (reservas).
+    // La logica de reservas vive en el modulo de Clases: ClaseService
+    // coordina la validacion cruzada de membresia (MembresiaDAO) y delega
+    // la escritura transaccional en ClaseDAO::reservarCupo().
+    // ------------------------------------------------------------------
+
+    public function listarAtletas(): array
+    {
+        return $this->claseDAO->listarAtletas();
+    }
+
+    public function listarClasesDisponibles(int $idAtleta): array
+    {
+        $this->validarAtleta($idAtleta);
+        return $this->claseDAO->listarClasesDisponibles($idAtleta);
+    }
+
+    public function listarReservasActivas(int $idAtleta): array
+    {
+        $this->validarAtleta($idAtleta);
+        return $this->claseDAO->listarReservasActivas($idAtleta);
+    }
+
+    public function reservar(array $datos): Reserva
+    {
+        $idAtleta = (int) ($datos['idAtleta'] ?? $datos['id_atleta'] ?? 0);
+        $idClase = (int) ($datos['idClase'] ?? $datos['id_clase'] ?? 0);
+
+        $this->validarAtleta($idAtleta);
+
+        if ($idClase <= 0 || !$this->claseDAO->claseExiste($idClase)) {
+            throw new InvalidArgumentException('Debe seleccionar una clase valida.');
+        }
+
+        // Validacion cruzada de membresia: el atleta debe tener una membresia
+        // en estado "Pagado" y no vencida, consultada a traves de MembresiaDAO.
+        if (!$this->tieneMembresiaVigente($idAtleta)) {
+            throw new DomainException('El atleta no tiene una membresia pagada y vigente.');
+        }
+
+        if ($this->claseDAO->consultarCupos($idClase) <= 0) {
+            throw new DomainException('La clase seleccionada no tiene cupos disponibles.');
+        }
+
+        if ($this->claseDAO->existeReservaActiva($idAtleta, $idClase)) {
+            throw new DomainException('El atleta ya tiene una reserva activa para esta clase.');
+        }
+
+        return $this->claseDAO->reservarCupo($idAtleta, $idClase);
+    }
+
+    public function cancelar(array $datos): void
+    {
+        $idAtleta = (int) ($datos['idAtleta'] ?? $datos['id_atleta'] ?? 0);
+        $idReserva = (int) ($datos['id'] ?? $datos['idReserva'] ?? $datos['id_reserva'] ?? 0);
+
+        $this->validarAtleta($idAtleta);
+
+        if ($idReserva <= 0) {
+            throw new InvalidArgumentException('Debe indicar una reserva valida.');
+        }
+
+        $this->claseDAO->cancelarReservaYLiberarCupo($idReserva, $idAtleta);
+    }
+
+    private function tieneMembresiaVigente(int $idAtleta): bool
+    {
+        $membresia = $this->membresiaDAO->buscarActualPorAtleta($idAtleta);
+
+        return $membresia !== null
+            && $membresia->getEstado() === 'Pagado'
+            && $membresia->getFechaVencimiento() >= date('Y-m-d');
+    }
+
+    private function validarAtleta(int $idAtleta): void
+    {
+        if ($idAtleta <= 0 || !$this->claseDAO->atletaExiste($idAtleta)) {
+            throw new InvalidArgumentException('Debe seleccionar un atleta valido.');
         }
     }
 

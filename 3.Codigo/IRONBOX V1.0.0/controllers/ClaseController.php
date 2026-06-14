@@ -45,6 +45,41 @@ try {
             responder(['success' => true, 'message' => 'Clase eliminada correctamente.']);
             break;
 
+        // Inscripciones de atletas (reservas) absorbidas por el modulo de Clases.
+        case 'atletas':
+            responder(['success' => true, 'data' => $service->listarAtletas()]);
+            break;
+
+        case 'clases':
+            responder([
+                'success' => true,
+                'data' => $service->listarClasesDisponibles(obtenerIdAtleta($payload)),
+            ]);
+            break;
+
+        case 'misReservas':
+            responder([
+                'success' => true,
+                'data' => $service->listarReservasActivas(obtenerIdAtleta($payload)),
+            ]);
+            break;
+
+        case 'reservar':
+            asegurarMetodoPost();
+            $reserva = $service->reservar($payload);
+            responder([
+                'success' => true,
+                'message' => 'Reserva confirmada correctamente.',
+                'data' => $reserva->toArray(),
+            ], 201);
+            break;
+
+        case 'cancelar':
+            asegurarMetodoPost();
+            $service->cancelar($payload);
+            responder(['success' => true, 'message' => 'Reserva cancelada correctamente.']);
+            break;
+
         default:
             responder(['success' => false, 'message' => 'Accion no soportada.'], 404);
     }
@@ -81,6 +116,11 @@ function obtenerId(array $payload): int
     }
 
     return $id;
+}
+
+function obtenerIdAtleta(array $payload): int
+{
+    return (int) ($_GET['idAtleta'] ?? $payload['idAtleta'] ?? $payload['id_atleta'] ?? 0);
 }
 
 function responder(array $respuesta, int $estadoHttp = 200): void

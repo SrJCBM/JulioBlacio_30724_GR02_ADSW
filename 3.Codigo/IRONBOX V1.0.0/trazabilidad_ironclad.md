@@ -24,17 +24,23 @@ Documento de trazabilidad tecnica del proyecto **IronClad Box**, una plataforma 
 
 ## Modulos Completados
 
-### [x] Modulo 1: Gestion de la Agenda de Clases (CUC-ADM-01)
+### [x] Modulo 1: Gestion de la Agenda de Clases e Inscripciones (CUC-ADM-01 / CUC-ATL-01)
+
+Conforme al Diagrama de Arquitectura de Capas, la logica de reservas **no constituye un modulo independiente**: pertenece a la gestion de Clases. Por ello `ClaseController` y `ClaseService` absorben tambien las inscripciones de atletas (validacion cruzada de membresia y descuento transaccional de cupos), eliminando los antiguos `ReservaController`, `ReservaService` y `ReservaDAO`.
 
 | Tipo | Archivo |
 | --- | --- |
 | Entidad | `3.Codigo/models/Clase.php` |
+| Entidad de inscripcion | `3.Codigo/models/Reserva.php` |
 | Builder | `3.Codigo/builders/ClaseBuilder.php` |
 | Service | `3.Codigo/services/ClaseService.php` |
 | DAO | `3.Codigo/dao/ClaseDAO.php` |
+| DAO cruzado (validacion de membresia) | `3.Codigo/dao/MembresiaDAO.php` |
 | Controller | `3.Codigo/controllers/ClaseController.php` |
-| HTML | `3.Codigo/views/gestion_clases.html` |
-| JS | `3.Codigo/assets/js/app.js` |
+| HTML (administracion) | `3.Codigo/views/gestion_clases.html` |
+| JS (administracion) | `3.Codigo/assets/js/app.js` |
+| HTML (inscripciones del atleta) | `3.Codigo/views/reservas_atleta.html` |
+| JS (inscripciones del atleta) | `3.Codigo/assets/js/reservas.js` |
 
 Reglas principales implementadas:
 
@@ -44,6 +50,20 @@ Reglas principales implementadas:
 - Prevencion de solapamiento de horarios.
 - Control de cupo maximo contra la capacidad del box.
 - Construccion controlada de la entidad mediante `ClaseBuilder`.
+- Inscripcion de atletas con validacion cruzada de membresia (`ClaseService` consulta `MembresiaDAO` exigiendo estado `Pagado` y vigencia).
+- Bloqueo de reservas duplicadas activas para el mismo atleta y la misma clase.
+- Descuento transaccional de 1 cupo al confirmar y liberacion de 1 cupo al cancelar, mediante `ClaseDAO::reservarCupo()` y `ClaseDAO::cancelarReservaYLiberarCupo()` (uso de `beginTransaction`).
+
+Patron Builder y documento GR2_30724: `ClaseBuilder` es el responsable de cumplir **REQ017 (control de cupos)** validando que el cupo maximo no exceda la capacidad del box, y **REQ018 (validacion de horarios)** garantizando dia/hora/duracion consistentes antes de delegar las reglas de agenda a `ClaseService`.
+
+Mapeo V4 de requerimientos atomicos cubiertos:
+
+- **REQ013: Creacion de clases.** Cumple las tareas 1, 2 y 3 mediante el formulario de `gestion_clases.html`, las validaciones progresivas de `ClaseBuilder` y la persistencia coordinada por `ClaseService` y `ClaseDAO`. **Decision de diseno:** en un box de CrossFit la sesion se identifica de forma univoca por `dia + hora + entrenador` (no por un nombre arbitrario); por ello la entidad `Clase` no incorpora un campo "nombre" libre, evitando sobreingenieria y datos redundantes. El elemento "Nombre de la clase" del REQ013 queda cubierto conceptualmente por esta identidad compuesta.
+- **REQ014: Edicion de clases.** Cumple las tareas 1, 2 y 3 mediante la interfaz de edicion, los metodos de actualizacion en `ClaseController` y la persistencia en `ClaseDAO`.
+- **REQ015: Eliminacion de clases.** Cumple las tareas 1, 2 y 3 mediante la accion de eliminacion desde la vista, la coordinacion del controlador/servicio y la eliminacion logica o fisica desde el DAO segun la operacion configurada.
+- **REQ016: Asignacion de entrenadores.** Cumple las tareas 1, 2 y 3 al exigir el `idEntrenador` durante la creacion/edicion de la clase, validar su presencia en `ClaseBuilder` y persistir la relacion con la clase.
+- **REQ017: Control de cupos.** Cumple las tareas 1, 2 y 3 mediante la validacion de capacidad maxima en `ClaseBuilder`, el control de `cuposDisponibles` en la entidad y la resta/liberacion dinamica de cupos desde el modulo de reservas. La `Agenda programada` muestra explicitamente los tres valores que pide el requerimiento: **cupos ocupados** (`cupoMaximo - cuposDisponibles`), **disponibles** y **capacidad maxima**.
+- **REQ018: Validacion de horarios.** Cumple las tareas 1, 2 y 3 mediante las reglas internas de `ClaseService` que previenen solapamientos, validan disponibilidad del entrenador y bloquean la persistencia de horarios inconsistentes.
 
 ### [x] Modulo 2: Gestion de Membresias y Pagos (CUC-ADM-02)
 
@@ -59,13 +79,22 @@ Reglas principales implementadas:
 
 Reglas principales implementadas:
 
-- Asignacion de membresias a atletas.
+- Creacion, asignacion y edicion de membresias a atletas (formulario reutilizado en modo crear/editar).
 - Estados validos: `Pagado`, `Pendiente`, `Vencido`.
 - Registro de pago con cambio automatico a estado `Pagado`.
 - Calculo automatico de fecha de vencimiento a 30 dias.
 - Listado de atletas con estado actual de membresia y expiracion.
 - Marcado automatico de membresias vencidas al consultar.
 - Construccion controlada de la entidad mediante `MembresiaBuilder`.
+
+Mapeo V4 de requerimientos atomicos cubiertos:
+
+- **REQ007: Creacion de membresias.** Cumple las tareas 1, 2 y 3: formulario rotulado **"Crear / Asignar membresia"** en `gestion_membresias.html` que deja explicita la creacion del registro, definicion de beneficios/tipo/precio mediante `MembresiaBuilder`, y almacenamiento en BD mediante `MembresiaDAO::crear`.
+- **REQ008: Edicion de membresias.** Cumple las tareas 1, 2 y 3: boton **"Editar"** por fila que carga la membresia en el formulario (modo edicion con "Cancelar edicion"), reconstruccion validada de la entidad en `MembresiaService::actualizar` mediante `MembresiaBuilder`, y persistencia con sentencia preparada en `MembresiaDAO::actualizar` (la accion `editar` de `MembresiaController` la expone). `actualizarTrasPago` reutiliza este mismo metodo.
+- **REQ009: Asignacion de membresias.** Cumple las tareas 1, 2 y 3: interfaz de asignacion a atletas, relacion con atletas mediante `idAtleta`, y validacion de existencia/vigencia desde `MembresiaService`.
+- **REQ010: Registro de pagos.** Cumple las tareas 1, 2 y 3: formulario/accion de pago, historial transaccional representado por la membresia actualizada, y actualizacion de estado a `Pagado`.
+- **REQ011: Consulta de membresias.** Cumple las tareas 1, 2 y 3: pantalla de consulta administrativa y personal, visualizacion de vigencia/estado, y validacion de acceso por `idAtleta`.
+- **REQ012: Control de vencimientos.** Cumple las tareas 1, 2 y 3: calculo automatico de fechas a 30 dias mediante `MembresiaBuilder`, alertas visuales por estado `Pagado`/`Pendiente`/`Vencido`, y bloqueo de beneficios en modulos cruzados como reservas si la membresia no esta vigente.
 
 ### [x] Modulo 3: Gestion de Usuarios (CUC-ADM-03)
 
@@ -91,6 +120,15 @@ Reglas principales implementadas:
 - Conservacion del hash existente cuando se edita un usuario sin cambiar contrasena.
 - Construccion controlada de la entidad mediante `UsuarioBuilder`.
 
+Mapeo V4 de requerimientos atomicos cubiertos:
+
+- **REQ001: Creacion de cuentas.** Cumple las tareas 1, 2 y 3: diseno de interfaz en `gestion_usuarios.html`, validaciones de formulario y reglas en `UsuarioBuilder`, y almacenamiento en BD mediante `UsuarioDAO`.
+- **REQ002: Edicion de cuentas.** Cumple las tareas 1, 2 y 3: interfaz de edicion reutilizando el formulario, actualizacion mediante `UsuarioService::editar`, y persistencia en `UsuarioDAO::actualizar`.
+- **REQ003: Desactivacion de cuentas.** Cumple las tareas 1, 2 y 3: campo `estado` en la entidad, desactivacion logica cambiando a `Inactivo`, y bloqueo operativo al separar usuarios activos/inactivos sin eliminar registros.
+- **REQ004: Creacion de roles.** **Decision de diseno (roles fijos):** el dominio del box opera con un catalogo cerrado de tres roles (`Administrador`, `Entrenador`, `Atleta`) validado en `UsuarioBuilder`. No se expone una pantalla de "crear rol" libre de forma deliberada, para evitar sobreingenieria y roles invalidos; el catalogo se gestiona como constante de negocio.
+- **REQ005: Asignacion de roles.** Cumple las tareas 1, 2 y 3: seleccion de rol desde el `<select>` del formulario de usuario, relacion usuario-rol persistida en la tabla `usuarios`, y validacion del rol en la capa de servicio/Builder.
+- **REQ006: Asignacion de permisos.** **Decision de diseno (permisos por rol):** los permisos no se administran individualmente; se derivan de forma implicita del rol mediante la separacion de controladores, vistas y flujos por actor. Una matriz de permisos granular queda fuera del alcance del MVP para evitar sobreingenieria.
+
 ### [x] Modulo 4: Seguimiento del Progreso Deportivo - Entrenador (CUC-ENT-01)
 
 | Tipo | Archivo |
@@ -115,27 +153,7 @@ Reglas principales implementadas:
 
 ### [x] Modulo 5: Gestion de Reservas de Clases - Atleta (CUC-ATL-01)
 
-| Tipo | Archivo |
-| --- | --- |
-| Entidad | `3.Codigo/models/Reserva.php` |
-| Service | `3.Codigo/services/ReservaService.php` |
-| DAO | `3.Codigo/dao/ReservaDAO.php` |
-| Controller | `3.Codigo/controllers/ReservaController.php` |
-| HTML | `3.Codigo/views/reservas_atleta.html` |
-| JS | `3.Codigo/assets/js/reservas.js` |
-
-Reglas principales implementadas:
-
-- Consulta de clases disponibles para el atleta.
-- Consulta de reservas activas del atleta.
-- Validacion de membresia vigente antes de reservar.
-- La membresia debe estar en estado `Pagado` y no vencida.
-- Consulta de cupos disponibles de la clase seleccionada.
-- Bloqueo de reserva si `cuposDisponibles <= 0`.
-- Descuento de 1 cupo disponible al confirmar una reserva.
-- Cancelacion logica de la reserva mediante estado `Cancelada`.
-- Liberacion de 1 cupo disponible al cancelar una reserva activa.
-- Prevencion de reservas duplicadas activas para el mismo atleta y la misma clase.
+Este módulo no existe como entidad independiente; su lógica y validaciones cruzadas han sido absorbidas por el Módulo 1 (Gestión de la Agenda de Clases), cumpliendo con nuestra Arquitectura de Capas.
 
 ### [x] Modulo 6: Registro de Progreso Personal - Atleta (CUC-ATL-02)
 
@@ -179,7 +197,16 @@ Reglas principales implementadas:
 - Cambiar estado a `Pagado` tras confirmar el pago.
 - Extender fecha de vencimiento a 30 dias desde la fecha de pago.
 
-### [x] REQ004-3: Implementacion de componentes visuales - Graficos de Progreso
+Mapeo V4 de requerimientos atomicos cubiertos:
+
+- **REQ007: Creacion de membresias.** Cumple las tareas 1, 2 y 3 reutilizando el formulario/flujo financiero, beneficios tipo/precio en `MembresiaBuilder`, y almacenamiento desde `MembresiaDAO`.
+- **REQ008: Edicion de membresias.** Cumple las tareas 1, 2 y 3 mediante la actualizacion de membresia durante renovaciones, actualizacion de precio/estado y persistencia con `actualizarTrasPago`.
+- **REQ009: Asignacion de membresias.** Cumple las tareas 1, 2 y 3 relacionando membresia-atleta por `idAtleta`, validando existencia de atleta y vigencia de la membresia.
+- **REQ010: Registro de pagos.** Cumple las tareas 1, 2 y 3 desde la vista `membresia_atleta.html`, simulando pago, registrando la transaccion logica y actualizando estado a `Pagado`.
+- **REQ011: Consulta de membresias.** Cumple las tareas 1, 2 y 3 con la accion `miMembresia`, visualizacion de vigencia/estado y validacion de acceso por atleta.
+- **REQ012: Control de vencimientos.** Cumple las tareas 1, 2 y 3 extendiendo automaticamente la fecha a 30 dias con `MembresiaBuilder`, mostrando estados/alertas y bloqueando beneficios como reservas si la membresia esta vencida o pendiente.
+
+### [x] Implementación de componentes visuales - Gráficos de Progreso (Pendiente de Backlog V5)
 
 Objetivo del requerimiento:
 
@@ -212,18 +239,18 @@ No quedan modulos funcionales pendientes para el Release 1. La siguiente fase co
 
 | Modulo | Estado | Actor principal |
 | --- | --- | --- |
-| CUC-ADM-01 Agenda de Clases | Completado | Administrador |
+| CUC-ADM-01 Agenda de Clases e Inscripciones | Completado | Administrador / Atleta |
 | CUC-ADM-02 Membresias y Pagos | Completado | Administrador |
 | CUC-ADM-03 Gestion de Usuarios | Completado | Administrador |
 | CUC-ENT-01 Seguimiento Deportivo | Completado | Entrenador |
-| CUC-ATL-01 Reservas de Clases | Completado | Atleta |
+| CUC-ATL-01 Reservas de Clases (consolidado en CUC-ADM-01) | Completado | Atleta |
 | CUC-ATL-02 Progreso Personal | Completado | Atleta |
 | CUC-ATL-03 Membresia Personal | Completado | Atleta |
-| REQ004-3 Graficos de Progreso | Completado | Atleta / Entrenador |
+| Gráficos de Progreso | Completado | Atleta / Entrenador |
 
 ## Cierre de Release 1
 
-Con la finalizacion de REQ004-3 se da por concluido el desarrollo del **Release 1** del MVP de IronClad Box. Este release cubre exitosamente los casos de uso principales de los tres actores del sistema: **Administrador**, **Entrenador** y **Atleta**.
+Con la finalizacion de los Graficos de Progreso se da por concluido el desarrollo del **Release 1** del MVP de IronClad Box. Este release cubre exitosamente los casos de uso principales de los tres actores del sistema: **Administrador**, **Entrenador** y **Atleta**.
 
 ## Release 2
 
@@ -231,7 +258,7 @@ El Release 2 inicia la ampliacion del sistema hacia capacidades colaborativas, i
 
 ## Modulos Completados - Release 2
 
-### [x] REQ005: Comunicacion entre entrenadores y atletas (RQ-05)
+### [x] Comunicación entre entrenadores y atletas (Pendiente de asignación en Backlog V5)
 
 Objetivo del requerimiento:
 
@@ -257,15 +284,11 @@ Reglas principales implementadas:
 - Consultar bandeja de entrada por atleta, incluyendo mensajes directos y anuncios.
 - Consultar historial de mensajes enviados por entrenadores.
 
-## Trabajo en Progreso (WIP) - Release 2
-
-### [ ] REQ006: Generacion de reportes administrativos (Uso de ReporteBuilder)
+### [x] Generación de reportes administrativos (Pendiente de asignación en Backlog V5)
 
 Objetivo del requerimiento:
 
 Permitir que el administrador genere reportes filtrados por fechas y tipo, visualice resultados preliminares y exporte datos administrativos.
-
-Componentes en construccion:
 
 | Tipo | Archivo |
 | --- | --- |
@@ -277,15 +300,19 @@ Componentes en construccion:
 | HTML Administrador | `3.Codigo/views/reportes_admin.html` |
 | JS Administrador | `3.Codigo/assets/js/reportes_admin.js` |
 
-Reglas de negocio objetivo:
+Reglas principales implementadas:
 
 - Generar reportes de `Finanzas` y `Asistencia`.
 - Aplicar filtros por fecha inicio y fecha fin.
-- Consolidar datos mediante consultas JOIN en el DAO.
-- Construir el resultado final con `ReporteBuilder`.
+- Consolidar datos mediante consultas JOIN en el DAO (`ReporteDAO::consultarFinanzas` y `ReporteDAO::consultarAsistencia`).
+- Construir el resultado final con `ReporteBuilder` (`formatearDatos` para columnas y resumen segun tipo).
 - Devolver JSON para visualizacion en pantalla.
-- Exportar CSV nativo mediante cabeceras HTTP.
+- Exportar CSV nativo mediante `fputcsv` y cabeceras HTTP.
 - Preparar salida PDF mediante impresion de pantalla del navegador.
+
+## Trabajo en Progreso (WIP) - Release 2
+
+No quedan funcionalidades pendientes en el alcance actual del Release 2. Los módulos de Comunicación y Reportes han sido completados y están a la espera de su asignación oficial de requerimiento en el Backlog V5
 
 ## Validaciones Tecnicas Realizadas
 

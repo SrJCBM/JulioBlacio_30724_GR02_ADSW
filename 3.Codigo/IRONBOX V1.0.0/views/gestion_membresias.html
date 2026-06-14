@@ -268,10 +268,12 @@
     <main>
         <section class="panel" aria-labelledby="form-title">
             <div class="panel-header">
-                <h2 id="form-title">Asignar membresia</h2>
+                <h2 id="form-title">Crear / Asignar membresia</h2>
             </div>
 
             <form id="membresiaForm" autocomplete="off">
+                <input type="hidden" id="membresiaId" name="id">
+
                 <label for="idAtleta">
                     Atleta
                     <select id="idAtleta" name="idAtleta" required>
@@ -312,8 +314,9 @@
                 </div>
 
                 <div class="actions">
-                    <button type="submit" class="primary" id="submitButton">Asignar membresia</button>
+                    <button type="submit" class="primary" id="submitButton">Crear / Asignar membresia</button>
                     <button type="button" class="secondary" id="todayButton">Usar fecha actual</button>
+                    <button type="button" class="secondary" id="cancelButton" hidden>Cancelar edicion</button>
                 </div>
             </form>
 
@@ -335,6 +338,7 @@
                             <th>Estado</th>
                             <th>Expira</th>
                             <th>Pago</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="atletasBody"></tbody>
