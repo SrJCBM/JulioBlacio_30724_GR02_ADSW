@@ -93,7 +93,7 @@
             fila.innerHTML = `
                 <td>
                     <strong>${escaparHtml(atleta.nombre)}</strong><br>
-                    <span>${escaparHtml(atleta.email)}</span>
+                    <span>${escaparHtml(atleta.correo)}</span>
                 </td>
                 <td>${membresia ? escaparHtml(membresia.tipo) : 'Sin plan'}</td>
                 <td>${membresia ? formatearMoneda(membresia.precio) : '-'}</td>

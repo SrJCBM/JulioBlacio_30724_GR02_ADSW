@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../services/UsuarioService.php';
+require_once __DIR__ . '/../includes/Auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -18,6 +19,8 @@ $metodo = strtoupper($payload['_method'] ?? $_SERVER['REQUEST_METHOD']);
 $accion = $_GET['action'] ?? $payload['action'] ?? accionPorMetodoUsuario($metodo);
 
 try {
+    authRequerirRol(['Administrador']);
+
     switch ($accion) {
         case 'listar':
             responderUsuario(['success' => true, 'data' => $service->listar()]);
@@ -52,6 +55,8 @@ try {
         default:
             responderUsuario(['success' => false, 'message' => 'Accion no soportada.'], 404);
     }
+} catch (AuthException $error) {
+    responderUsuario(['success' => false, 'message' => $error->getMessage()], $error->getEstadoHttp());
 } catch (InvalidArgumentException | DomainException $error) {
     responderUsuario(['success' => false, 'message' => $error->getMessage()], 422);
 } catch (Throwable $error) {

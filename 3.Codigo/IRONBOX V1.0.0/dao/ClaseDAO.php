@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../models/Clase.php';
 require_once __DIR__ . '/../models/Reserva.php';
+require_once __DIR__ . '/../includes/Database.php';
 
 class ClaseDAO
 {
@@ -9,178 +10,7 @@ class ClaseDAO
 
     public function __construct(?PDO $conexion = null)
     {
-        $this->conexion = $conexion ?? $this->crearConexionPdoSimulada();
-        $this->inicializarEsquemaSimulado();
-    }
-
-    private function crearConexionPdoSimulada(): PDO
-    {
-        $directorioDatos = __DIR__ . '/../data';
-        if (!is_dir($directorioDatos)) {
-            mkdir($directorioDatos, 0777, true);
-        }
-
-        $rutaBase = $directorioDatos . '/ironclad_box.sqlite';
-        $pdo = new PDO('sqlite:' . $rutaBase);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec('PRAGMA foreign_keys = ON;');
-
-        return $pdo;
-
-        /*
-        Para MySQL real:
-        $dsn = 'mysql:host=localhost;dbname=ironclad_box;charset=utf8mb4';
-        return new PDO($dsn, 'usuario', 'password', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        */
-    }
-
-    private function inicializarEsquemaSimulado(): void
-    {
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS atletas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                fecha_registro TEXT NOT NULL
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS entrenadores (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                disponible INTEGER NOT NULL DEFAULT 1
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS clases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                dia TEXT NOT NULL,
-                hora TEXT NOT NULL,
-                duracion INTEGER NOT NULL,
-                cupo_maximo INTEGER NOT NULL,
-                cupos_disponibles INTEGER NOT NULL,
-                entrenador_id INTEGER NOT NULL,
-                FOREIGN KEY (entrenador_id) REFERENCES entrenadores(id)
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS membresias (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tipo TEXT NOT NULL,
-                precio REAL NOT NULL,
-                fecha_inicio TEXT NOT NULL,
-                fecha_vencimiento TEXT NOT NULL,
-                estado TEXT NOT NULL CHECK (estado IN ("Pagado", "Pendiente", "Vencido")),
-                id_atleta INTEGER NOT NULL,
-                FOREIGN KEY (id_atleta) REFERENCES atletas(id)
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS reservas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                id_atleta INTEGER NOT NULL,
-                id_clase INTEGER NOT NULL,
-                fecha_reserva TEXT NOT NULL,
-                estado TEXT NOT NULL CHECK (estado IN ("Confirmada", "Cancelada")),
-                FOREIGN KEY (id_atleta) REFERENCES atletas(id),
-                FOREIGN KEY (id_clase) REFERENCES clases(id)
-            )'
-        );
-
-        $this->sembrarDatosBase();
-    }
-
-    private function sembrarDatosBase(): void
-    {
-        $atletas = [
-            ['nombre' => 'Daniela Moya', 'email' => 'daniela.moya@ironcladbox.local'],
-            ['nombre' => 'Nicolas Perez', 'email' => 'nicolas.perez@ironcladbox.local'],
-            ['nombre' => 'Andrea Vega', 'email' => 'andrea.vega@ironcladbox.local'],
-            ['nombre' => 'Sebastian Flores', 'email' => 'sebastian.flores@ironcladbox.local'],
-        ];
-
-        $insertAtleta = $this->conexion->prepare(
-            'INSERT OR IGNORE INTO atletas (nombre, email, fecha_registro)
-             VALUES (:nombre, :email, :fecha_registro)'
-        );
-
-        foreach ($atletas as $atleta) {
-            $insertAtleta->execute([
-                'nombre' => $atleta['nombre'],
-                'email' => $atleta['email'],
-                'fecha_registro' => date('Y-m-d'),
-            ]);
-        }
-
-        $entrenadores = [
-            ['nombre' => 'Valeria Rios', 'email' => 'valeria.rios@ironcladbox.local'],
-            ['nombre' => 'Mateo Silva', 'email' => 'mateo.silva@ironcladbox.local'],
-            ['nombre' => 'Camila Torres', 'email' => 'camila.torres@ironcladbox.local'],
-        ];
-
-        $insertEntrenador = $this->conexion->prepare(
-            'INSERT OR IGNORE INTO entrenadores (nombre, email, disponible)
-             VALUES (:nombre, :email, 1)'
-        );
-
-        foreach ($entrenadores as $entrenador) {
-            $insertEntrenador->execute($entrenador);
-        }
-
-        if ((int) $this->conexion->query('SELECT COUNT(*) FROM clases')->fetchColumn() === 0) {
-            $insertClase = $this->conexion->prepare(
-                'INSERT INTO clases
-                    (dia, hora, duracion, cupo_maximo, cupos_disponibles, entrenador_id)
-                 VALUES
-                    (:dia, :hora, :duracion, :cupo_maximo, :cupos_disponibles, :entrenador_id)'
-            );
-
-            $clases = [
-                ['dia' => date('Y-m-d', strtotime('+1 day')), 'hora' => '07:00', 'duracion' => 60, 'cupo' => 12, 'entrenador' => 1],
-                ['dia' => date('Y-m-d', strtotime('+1 day')), 'hora' => '18:00', 'duracion' => 60, 'cupo' => 10, 'entrenador' => 2],
-                ['dia' => date('Y-m-d', strtotime('+2 day')), 'hora' => '06:00', 'duracion' => 45, 'cupo' => 8, 'entrenador' => 3],
-            ];
-
-            foreach ($clases as $clase) {
-                $insertClase->execute([
-                    'dia' => $clase['dia'],
-                    'hora' => $clase['hora'],
-                    'duracion' => $clase['duracion'],
-                    'cupo_maximo' => $clase['cupo'],
-                    'cupos_disponibles' => $clase['cupo'],
-                    'entrenador_id' => $clase['entrenador'],
-                ]);
-            }
-        }
-
-        $hayMembresiaVigente = (int) $this->conexion->query(
-            'SELECT COUNT(*)
-               FROM membresias
-              WHERE estado = "Pagado"
-                AND fecha_vencimiento >= date("now")'
-        )->fetchColumn();
-
-        if ($hayMembresiaVigente === 0) {
-            $sentencia = $this->conexion->prepare(
-                'INSERT INTO membresias
-                    (tipo, precio, fecha_inicio, fecha_vencimiento, estado, id_atleta)
-                 VALUES
-                    ("Premium", 55.00, :fecha_inicio, :fecha_vencimiento, "Pagado", 1)'
-            );
-            $sentencia->execute([
-                'fecha_inicio' => date('Y-m-d'),
-                'fecha_vencimiento' => date('Y-m-d', strtotime('+30 days')),
-            ]);
-        }
+        $this->conexion = $conexion ?? Database::conectar();
     }
 
     public function crear(Clase $clase): Clase
@@ -253,7 +83,7 @@ class ClaseDAO
             'SELECT
                 c.*,
                 e.nombre AS entrenador_nombre,
-                e.email AS entrenador_email
+                e.correo AS entrenador_correo
              FROM clases c
              INNER JOIN entrenadores e ON e.id = c.entrenador_id
              ORDER BY c.dia ASC, c.hora ASC'
@@ -265,7 +95,7 @@ class ClaseDAO
     public function listarEntrenadores(): array
     {
         $sentencia = $this->conexion->query(
-            'SELECT id, nombre, email, disponible FROM entrenadores ORDER BY nombre ASC'
+            'SELECT id, nombre, correo, disponible FROM entrenadores ORDER BY nombre ASC'
         );
 
         return $sentencia->fetchAll();
@@ -316,8 +146,8 @@ class ClaseDAO
         $sql = 'SELECT COUNT(*)
                   FROM clases
                  WHERE dia = :dia
-                   AND time(hora) < time(:fin)
-                   AND time(:inicio) < time(hora, "+" || duracion || " minutes")';
+                   AND TIME(hora) < TIME(:fin)
+                   AND TIME(:inicio) < TIME(DATE_ADD(TIMESTAMP(dia, hora), INTERVAL duracion MINUTE))';
 
         if ($entrenadorId !== null) {
             $sql .= ' AND entrenador_id = :entrenador_id';
@@ -349,7 +179,7 @@ class ClaseDAO
         $clase['entrenador'] = [
             'id' => (int) $fila['entrenador_id'],
             'nombre' => $fila['entrenador_nombre'],
-            'email' => $fila['entrenador_email'],
+            'correo' => $fila['entrenador_correo'],
         ];
 
         return $clase;
@@ -364,7 +194,7 @@ class ClaseDAO
     public function listarAtletas(): array
     {
         $sentencia = $this->conexion->query(
-            'SELECT id, nombre, email, fecha_registro FROM atletas ORDER BY nombre ASC'
+            'SELECT id, nombre, correo, fecha_registro FROM atletas ORDER BY nombre ASC'
         );
 
         return $sentencia->fetchAll();
@@ -398,11 +228,11 @@ class ClaseDAO
     public function existeReservaActiva(int $idAtleta, int $idClase): bool
     {
         $sentencia = $this->conexion->prepare(
-            'SELECT COUNT(*)
+            "SELECT COUNT(*)
                FROM reservas
               WHERE id_atleta = :id_atleta
                 AND id_clase = :id_clase
-                AND estado = "Confirmada"'
+                AND estado = 'Confirmada'"
         );
         $sentencia->execute([
             'id_atleta' => $idAtleta,
@@ -415,7 +245,7 @@ class ClaseDAO
     public function listarClasesDisponibles(int $idAtleta): array
     {
         $sentencia = $this->conexion->prepare(
-            'SELECT
+            "SELECT
                 c.*,
                 e.nombre AS entrenador_nombre,
                 CASE
@@ -427,10 +257,10 @@ class ClaseDAO
              LEFT JOIN reservas r
                 ON r.id_clase = c.id
                AND r.id_atleta = :id_atleta
-               AND r.estado = "Confirmada"
-             WHERE datetime(c.dia || " " || c.hora) >= datetime("now", "localtime")
+               AND r.estado = 'Confirmada'
+             WHERE TIMESTAMP(c.dia, c.hora) >= NOW()
                AND c.cupos_disponibles > 0
-             ORDER BY c.dia ASC, c.hora ASC'
+             ORDER BY c.dia ASC, c.hora ASC"
         );
         $sentencia->execute(['id_atleta' => $idAtleta]);
 
@@ -440,7 +270,7 @@ class ClaseDAO
     public function listarReservasActivas(int $idAtleta): array
     {
         $sentencia = $this->conexion->prepare(
-            'SELECT
+            "SELECT
                 r.*,
                 c.dia,
                 c.hora,
@@ -454,8 +284,8 @@ class ClaseDAO
              INNER JOIN entrenadores e ON e.id = c.entrenador_id
              INNER JOIN atletas a ON a.id = r.id_atleta
              WHERE r.id_atleta = :id_atleta
-               AND r.estado = "Confirmada"
-             ORDER BY c.dia ASC, c.hora ASC'
+               AND r.estado = 'Confirmada'
+             ORDER BY c.dia ASC, c.hora ASC"
         );
         $sentencia->execute(['id_atleta' => $idAtleta]);
 
@@ -481,8 +311,8 @@ class ClaseDAO
 
             $fechaReserva = date('Y-m-d H:i:s');
             $insercion = $this->conexion->prepare(
-                'INSERT INTO reservas (id_atleta, id_clase, fecha_reserva, estado)
-                 VALUES (:id_atleta, :id_clase, :fecha_reserva, "Confirmada")'
+                "INSERT INTO reservas (id_atleta, id_clase, fecha_reserva, estado)
+                 VALUES (:id_atleta, :id_clase, :fecha_reserva, 'Confirmada')"
             );
             $insercion->execute([
                 'id_atleta' => $idAtleta,
@@ -514,11 +344,11 @@ class ClaseDAO
             }
 
             $cancelacion = $this->conexion->prepare(
-                'UPDATE reservas
-                    SET estado = "Cancelada"
+                "UPDATE reservas
+                    SET estado = 'Cancelada'
                   WHERE id = :id_reserva
                     AND id_atleta = :id_atleta
-                    AND estado = "Confirmada"'
+                    AND estado = 'Confirmada'"
             );
             $cancelacion->execute([
                 'id_reserva' => $idReserva,

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../services/MembresiaService.php';
+require_once __DIR__ . '/../includes/Auth.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -23,18 +24,22 @@ $accion = $_GET['action'] ?? $payload['action'] ?? 'listar';
 try {
     switch ($accion) {
         case 'listar':
+            authRequerirRol(['Administrador']);
             responderMembresia(['success' => true, 'data' => $service->listarAtletasConMembresia()]);
             break;
 
         case 'membresias':
+            authRequerirRol(['Administrador']);
             responderMembresia(['success' => true, 'data' => $service->listar()]);
             break;
 
         case 'atletas':
+            authRequerirRol(['Administrador', 'Atleta']);
             responderMembresia(['success' => true, 'data' => $service->listarAtletas()]);
             break;
 
         case 'miMembresia':
+            authRequerirRol(['Administrador', 'Atleta']);
             $membresia = $service->obtenerActualPorAtleta(obtenerIdAtletaMembresia($payload));
             responderMembresia([
                 'success' => true,
@@ -44,6 +49,7 @@ try {
             break;
 
         case 'crear':
+            authRequerirRol(['Administrador']);
             asegurarPostMembresia();
             $membresia = $service->crear($payload);
             responderMembresia([
@@ -55,6 +61,7 @@ try {
 
         case 'editar':
         case 'actualizar':
+            authRequerirRol(['Administrador']);
             asegurarPostMembresia();
             $membresia = $service->actualizar($payload);
             responderMembresia([
@@ -65,7 +72,18 @@ try {
             break;
 
         case 'registrarPago':
+            authRequerirRol(['Administrador']);
+            asegurarPostMembresia();
+            $membresia = $service->registrarPago($payload);
+            responderMembresia([
+                'success' => true,
+                'message' => 'Pago registrado correctamente.',
+                'data' => $membresia->toArray(),
+            ]);
+            break;
+
         case 'pagarMembresia':
+            authRequerirRol(['Atleta']);
             asegurarPostMembresia();
             $payload['idAtleta'] = obtenerIdAtletaMembresia($payload);
             $membresia = $service->registrarPago($payload);
@@ -76,9 +94,23 @@ try {
             ]);
             break;
 
+        case 'cancelarMembresia':
+            authRequerirRol(['Atleta']);
+            asegurarPostMembresia();
+            $payload['idAtleta'] = obtenerIdAtletaMembresia($payload);
+            $membresia = $service->cancelar($payload);
+            responderMembresia([
+                'success' => true,
+                'message' => 'Membresia cancelada correctamente.',
+                'data' => $membresia->toArray(),
+            ]);
+            break;
+
         default:
             responderMembresia(['success' => false, 'message' => 'Accion no soportada.'], 404);
     }
+} catch (AuthException $error) {
+    responderMembresia(['success' => false, 'message' => $error->getMessage()], $error->getEstadoHttp());
 } catch (InvalidArgumentException | DomainException $error) {
     responderMembresia(['success' => false, 'message' => $error->getMessage()], 422);
 } catch (Throwable $error) {

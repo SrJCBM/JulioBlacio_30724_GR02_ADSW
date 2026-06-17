@@ -21,13 +21,18 @@ class UsuarioService
     {
         $datos = $this->normalizarDatosCreacion($datos);
 
-        if ($this->usuarioDAO->emailExiste($datos['email'])) {
-            throw new DomainException('El email ya esta registrado.');
+        if ($this->usuarioDAO->correoExiste($datos['correo'])) {
+            throw new DomainException('El correo ya esta registrado.');
+        }
+
+        if ($this->usuarioDAO->cedulaExiste($datos['cedula'])) {
+            throw new DomainException('La cedula ya esta registrada.');
         }
 
         $usuario = (new UsuarioBuilder())
             ->configurarNombre($datos['nombre'])
-            ->configurarEmail($datos['email'])
+            ->configurarCedula($datos['cedula'])
+            ->configurarCorreo($datos['correo'])
             ->definirContrasena($datos['contrasena'])
             ->asignarRol($datos['rol'])
             ->definirEstado($datos['estado'])
@@ -46,14 +51,19 @@ class UsuarioService
 
         $datos = $this->normalizarDatosEdicion($datos, $usuarioActual);
 
-        if ($this->usuarioDAO->emailExiste($datos['email'], $id)) {
-            throw new DomainException('El email ya esta registrado por otro usuario.');
+        if ($this->usuarioDAO->correoExiste($datos['correo'], $id)) {
+            throw new DomainException('El correo ya esta registrado por otro usuario.');
+        }
+
+        if ($this->usuarioDAO->cedulaExiste($datos['cedula'], $id)) {
+            throw new DomainException('La cedula ya esta registrada por otro usuario.');
         }
 
         $builder = (new UsuarioBuilder())
             ->conId($id)
             ->configurarNombre($datos['nombre'])
-            ->configurarEmail($datos['email'])
+            ->configurarCedula($datos['cedula'])
+            ->configurarCorreo($datos['correo'])
             ->asignarRol($datos['rol'])
             ->definirEstado($datos['estado'])
             ->definirFechaRegistro($datos['fechaRegistro']);
@@ -83,18 +93,38 @@ class UsuarioService
         }
     }
 
+    public function autenticar(string $correo, string $contrasena): Usuario
+    {
+        $correo = strtolower(trim($correo));
+        if ($correo === '' || trim($contrasena) === '') {
+            throw new InvalidArgumentException('Debe ingresar correo y contrasena.');
+        }
+
+        $usuario = $this->usuarioDAO->buscarPorCorreo($correo);
+        if (!$usuario || !password_verify($contrasena, $usuario->getContrasena())) {
+            throw new DomainException('Credenciales invalidas.');
+        }
+
+        if ($usuario->getEstado() !== 'Activo') {
+            throw new DomainException('El usuario se encuentra inactivo.');
+        }
+
+        return $usuario;
+    }
+
     private function normalizarDatosCreacion(array $datos): array
     {
         $normalizados = [
             'nombre' => $datos['nombre'] ?? '',
-            'email' => $datos['email'] ?? '',
+            'cedula' => preg_replace('/\D+/', '', (string) ($datos['cedula'] ?? '')),
+            'correo' => $datos['correo'] ?? $datos['email'] ?? '',
             'contrasena' => $datos['contrasena'] ?? $datos['contraseña'] ?? '',
             'rol' => $datos['rol'] ?? '',
             'estado' => $datos['estado'] ?? 'Activo',
             'fechaRegistro' => $datos['fechaRegistro'] ?? $datos['fecha_registro'] ?? date('Y-m-d'),
         ];
 
-        foreach (['nombre', 'email', 'contrasena', 'rol'] as $campo) {
+        foreach (['nombre', 'cedula', 'correo', 'contrasena', 'rol'] as $campo) {
             if ($normalizados[$campo] === '') {
                 throw new InvalidArgumentException('El campo ' . $campo . ' es obligatorio.');
             }
@@ -107,7 +137,8 @@ class UsuarioService
     {
         return [
             'nombre' => $datos['nombre'] ?? $usuarioActual->getNombre(),
-            'email' => $datos['email'] ?? $usuarioActual->getEmail(),
+            'cedula' => preg_replace('/\D+/', '', (string) ($datos['cedula'] ?? $usuarioActual->getCedula())),
+            'correo' => $datos['correo'] ?? $datos['email'] ?? $usuarioActual->getCorreo(),
             'contrasena' => $datos['contrasena'] ?? $datos['contraseña'] ?? '',
             'rol' => $datos['rol'] ?? $usuarioActual->getRol(),
             'estado' => $datos['estado'] ?? $usuarioActual->getEstado(),

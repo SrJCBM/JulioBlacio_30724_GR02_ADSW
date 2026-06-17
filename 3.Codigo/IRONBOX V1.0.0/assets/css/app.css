@@ -1,0 +1,165 @@
+html {
+    scrollbar-gutter: stable;
+}
+
+body {
+    background:
+        radial-gradient(circle at top left, rgba(184, 35, 47, 0.06), transparent 320px),
+        var(--bg, #f4f6f8) !important;
+    text-rendering: optimizeLegibility;
+}
+
+header {
+    box-shadow: 0 10px 24px rgba(18, 24, 31, 0.12);
+}
+
+main {
+    padding-bottom: 28px;
+}
+
+.panel {
+    overflow: hidden;
+    border-color: rgba(155, 168, 182, 0.38) !important;
+    box-shadow: 0 10px 26px rgba(31, 37, 44, 0.07) !important;
+}
+
+.panel-header {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+}
+
+.panel-header h2 {
+    color: var(--ink, #1f252c);
+}
+
+input,
+select,
+textarea {
+    min-height: 40px;
+    border: 1px solid var(--line, #dce2e8);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink, #1f252c);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--focus, #1f6feb) !important;
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.14);
+    outline: none;
+}
+
+button,
+.primary,
+.secondary,
+.danger,
+.module-link {
+    transition: transform 0.14s ease, border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+button:hover,
+.primary:hover,
+.secondary:hover,
+.danger:hover,
+.module-link:hover {
+    transform: translateY(-1px);
+}
+
+button:active,
+.primary:active,
+.secondary:active,
+.danger:active,
+.module-link:active {
+    transform: translateY(0);
+}
+
+.primary {
+    box-shadow: 0 8px 16px rgba(184, 35, 47, 0.18);
+}
+
+.secondary {
+    background: #fff !important;
+}
+
+.status:not(:empty),
+.empty {
+    border-radius: 8px;
+}
+
+.table-wrap {
+    border-radius: 8px;
+    border: 1px solid var(--line, #dce2e8);
+    overflow: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #f8fafc;
+    color: var(--ink, #1f252c);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+td,
+th {
+    vertical-align: top;
+}
+
+tbody tr:hover {
+    background: #fbfcfd;
+}
+
+.chart-wrap,
+.metrics,
+.athlete-box,
+.summary,
+.message-list {
+    border-radius: 8px;
+}
+
+.tag,
+.badge {
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+@media (max-width: 720px) {
+    header {
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+    }
+
+    main {
+        width: min(100% - 24px, 1180px) !important;
+        margin-top: 18px !important;
+    }
+
+    .panel-header {
+        padding: 16px !important;
+    }
+
+    .actions {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    .actions button,
+    .actions a,
+    .primary,
+    .secondary,
+    .danger {
+        width: 100%;
+        justify-content: center;
+    }
+}

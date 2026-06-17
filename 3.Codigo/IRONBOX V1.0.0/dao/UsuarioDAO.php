@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Usuario.php';
+require_once __DIR__ . '/../includes/Database.php';
 
 class UsuarioDAO
 {
@@ -8,97 +9,22 @@ class UsuarioDAO
 
     public function __construct(?PDO $conexion = null)
     {
-        $this->conexion = $conexion ?? $this->crearConexionPdoSimulada();
-        $this->inicializarEsquemaSimulado();
-    }
-
-    private function crearConexionPdoSimulada(): PDO
-    {
-        $directorioDatos = __DIR__ . '/../data';
-        if (!is_dir($directorioDatos)) {
-            mkdir($directorioDatos, 0777, true);
-        }
-
-        $rutaBase = $directorioDatos . '/ironclad_box.sqlite';
-        $pdo = new PDO('sqlite:' . $rutaBase);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec('PRAGMA foreign_keys = ON;');
-
-        return $pdo;
-
-        /*
-        Para MySQL real:
-        $dsn = 'mysql:host=localhost;dbname=ironclad_box;charset=utf8mb4';
-        return new PDO($dsn, 'usuario', 'password', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        */
-    }
-
-    private function inicializarEsquemaSimulado(): void
-    {
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS usuarios (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                contrasena TEXT NOT NULL,
-                rol TEXT NOT NULL CHECK (rol IN ("Administrador", "Entrenador", "Atleta")),
-                estado TEXT NOT NULL CHECK (estado IN ("Activo", "Inactivo")),
-                fecha_registro TEXT NOT NULL
-            )'
-        );
-
-        $usuarios = [
-            [
-                'nombre' => 'Admin IronClad',
-                'email' => 'admin@ironcladbox.local',
-                'rol' => 'Administrador',
-            ],
-            [
-                'nombre' => 'Valeria Rios',
-                'email' => 'valeria.rios@ironcladbox.local',
-                'rol' => 'Entrenador',
-            ],
-            [
-                'nombre' => 'Daniela Moya',
-                'email' => 'daniela.moya@ironcladbox.local',
-                'rol' => 'Atleta',
-            ],
-        ];
-
-        $sentencia = $this->conexion->prepare(
-            'INSERT OR IGNORE INTO usuarios
-                (nombre, email, contrasena, rol, estado, fecha_registro)
-             VALUES
-                (:nombre, :email, :contrasena, :rol, "Activo", :fecha_registro)'
-        );
-
-        foreach ($usuarios as $usuario) {
-            $sentencia->execute([
-                'nombre' => $usuario['nombre'],
-                'email' => $usuario['email'],
-                'contrasena' => password_hash('IronClad123', PASSWORD_DEFAULT),
-                'rol' => $usuario['rol'],
-                'fecha_registro' => date('Y-m-d'),
-            ]);
-        }
+        $this->conexion = $conexion ?? Database::conectar();
     }
 
     public function crear(Usuario $usuario): Usuario
     {
         $sentencia = $this->conexion->prepare(
             'INSERT INTO usuarios
-                (nombre, email, contrasena, rol, estado, fecha_registro)
+                (nombre, cedula, correo, contrasena, rol, estado, fecha_registro)
              VALUES
-                (:nombre, :email, :contrasena, :rol, :estado, :fecha_registro)'
+                (:nombre, :cedula, :correo, :contrasena, :rol, :estado, :fecha_registro)'
         );
 
         $sentencia->execute([
             'nombre' => $usuario->getNombre(),
-            'email' => $usuario->getEmail(),
+            'cedula' => $usuario->getCedula(),
+            'correo' => $usuario->getCorreo(),
             'contrasena' => $usuario->getContrasena(),
             'rol' => $usuario->getRol(),
             'estado' => $usuario->getEstado(),
@@ -113,7 +39,8 @@ class UsuarioDAO
         $sentencia = $this->conexion->prepare(
             'UPDATE usuarios
                 SET nombre = :nombre,
-                    email = :email,
+                    cedula = :cedula,
+                    correo = :correo,
                     contrasena = :contrasena,
                     rol = :rol,
                     estado = :estado,
@@ -124,7 +51,8 @@ class UsuarioDAO
         $sentencia->execute([
             'id' => $usuario->getId(),
             'nombre' => $usuario->getNombre(),
-            'email' => $usuario->getEmail(),
+            'cedula' => $usuario->getCedula(),
+            'correo' => $usuario->getCorreo(),
             'contrasena' => $usuario->getContrasena(),
             'rol' => $usuario->getRol(),
             'estado' => $usuario->getEstado(),
@@ -137,7 +65,7 @@ class UsuarioDAO
     public function desactivar(int $id): bool
     {
         $sentencia = $this->conexion->prepare(
-            'UPDATE usuarios SET estado = "Inactivo" WHERE id = :id AND estado = "Activo"'
+            "UPDATE usuarios SET estado = 'Inactivo' WHERE id = :id AND estado = 'Activo'"
         );
         $sentencia->execute(['id' => $id]);
 
@@ -148,6 +76,15 @@ class UsuarioDAO
     {
         $sentencia = $this->conexion->prepare('SELECT * FROM usuarios WHERE id = :id');
         $sentencia->execute(['id' => $id]);
+        $fila = $sentencia->fetch();
+
+        return $fila ? Usuario::fromArray($fila) : null;
+    }
+
+    public function buscarPorCorreo(string $correo): ?Usuario
+    {
+        $sentencia = $this->conexion->prepare('SELECT * FROM usuarios WHERE lower(correo) = :correo LIMIT 1');
+        $sentencia->execute(['correo' => strtolower(trim($correo))]);
         $fila = $sentencia->fetch();
 
         return $fila ? Usuario::fromArray($fila) : null;
@@ -165,10 +102,26 @@ class UsuarioDAO
         );
     }
 
-    public function emailExiste(string $email, ?int $idIgnorado = null): bool
+    public function correoExiste(string $correo, ?int $idIgnorado = null): bool
     {
-        $parametros = ['email' => strtolower(trim($email))];
-        $sql = 'SELECT COUNT(*) FROM usuarios WHERE lower(email) = :email';
+        $parametros = ['correo' => strtolower(trim($correo))];
+        $sql = 'SELECT COUNT(*) FROM usuarios WHERE lower(correo) = :correo';
+
+        if ($idIgnorado !== null) {
+            $sql .= ' AND id <> :id_ignorado';
+            $parametros['id_ignorado'] = $idIgnorado;
+        }
+
+        $sentencia = $this->conexion->prepare($sql);
+        $sentencia->execute($parametros);
+
+        return (int) $sentencia->fetchColumn() > 0;
+    }
+
+    public function cedulaExiste(string $cedula, ?int $idIgnorado = null): bool
+    {
+        $parametros = ['cedula' => preg_replace('/\D+/', '', $cedula)];
+        $sql = 'SELECT COUNT(*) FROM usuarios WHERE cedula = :cedula';
 
         if ($idIgnorado !== null) {
             $sql .= ' AND id <> :id_ignorado';

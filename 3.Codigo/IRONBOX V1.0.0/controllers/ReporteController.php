@@ -1,12 +1,15 @@
 <?php
 
 require_once __DIR__ . '/../services/ReporteService.php';
+require_once __DIR__ . '/../includes/Auth.php';
 
 $service = new ReporteService();
 $payload = obtenerPayloadReporte();
 $accion = $_GET['action'] ?? $payload['action'] ?? 'generar';
 
 try {
+    authRequerirRol(['Administrador']);
+
     switch ($accion) {
         case 'generar':
             header('Content-Type: application/json; charset=utf-8');
@@ -31,6 +34,9 @@ try {
             header('Content-Type: application/json; charset=utf-8');
             responderReporte(['success' => false, 'message' => 'Accion no soportada.'], 404);
     }
+} catch (AuthException $error) {
+    header('Content-Type: application/json; charset=utf-8');
+    responderReporte(['success' => false, 'message' => $error->getMessage()], $error->getEstadoHttp());
 } catch (InvalidArgumentException | DomainException $error) {
     header('Content-Type: application/json; charset=utf-8');
     responderReporte(['success' => false, 'message' => $error->getMessage()], 422);

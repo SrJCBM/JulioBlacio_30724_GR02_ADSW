@@ -1,0 +1,140 @@
+@startuml
+title Arquitectura por Capas - IronClad Box V2\nMVC + Patron Builder + Login por rol\nREQ001 al REQ018
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam rectangle {
+  RoundCorner 12
+}
+
+left to right direction
+
+actor "Administrador" as Admin
+actor "Entrenador" as Trainer
+actor "Atleta" as Athlete
+
+package "Capa de Presentacion\n(View - HTML + Vanilla JS)" #E3F2FD {
+  rectangle "LoginView\ncorreo + contrasena" as LoginView
+  rectangle "AdminDashboardView\nusuarios, clases,\nmembresias y reportes" as AdminView
+  rectangle "TrainerDashboardView\nclases: crear, ver,\neditar y borrar" as TrainerView
+  rectangle "AthleteDashboardView\nclases/reservas y\nmembresia personal" as AthleteView
+
+  note bottom of AdminView
+    REQ006 se implementa en la capa de
+    presentacion con nav.js integrado a
+    las vistas: consulta la sesion y muestra
+    opciones segun el rol autenticado.
+  end note
+}
+
+package "Capa Controladora\n(Controller - PHP)" #FFF3E0 {
+  rectangle "AuthController\nlogin / logout / me\nREQ004-REQ005" as AuthController
+  rectangle "UsuarioController\ncrear / editar /\ndesactivar\nREQ001-REQ003" as UsuarioController
+  rectangle "MembresiaController\ncrear / editar / asignar /\npagar / consultar / cancelar\nREQ007-REQ012" as MembresiaController
+  rectangle "ClaseController\ncrear / editar / eliminar /\nreservar / cancelar\nREQ013-REQ018" as ClaseController
+}
+
+package "Capa de Logica de Negocio\n(Service + Builder + Session Helper)" #E8F5E9 {
+  rectangle "Auth.php\nhelper de sesion PHP\nroles y acceso" as AuthHelper
+  rectangle "UsuarioService\ncuentas, cedula,\nroles y estado" as UsuarioService
+  rectangle "MembresiaService\nmembresias, renovaciones,\ncancelacion y vencimientos" as MembresiaService
+  rectangle "ClaseService\nhorarios, entrenadores,\ncupos y reservas" as ClaseService
+
+  rectangle "UsuarioBuilder\n<<Builder>>\nnombre, correo,\ncontrasena, cedula,\nrol, estado" as UsuarioBuilder #F3E5F5
+  rectangle "MembresiaBuilder\n<<Builder>>\ntipo, precio,\nfechas, estado,\natleta" as MembresiaBuilder #F3E5F5
+  rectangle "ClaseBuilder\n<<Builder>>\ndia, hora, duracion,\ncupo maximo,\ncupos disponibles,\nentrenador" as ClaseBuilder #F3E5F5
+
+  note right of UsuarioBuilder
+    El patron Builder se mantiene en
+    entidades con validaciones progresivas.
+
+    REQ001-REQ003 -> UsuarioBuilder
+    REQ007-REQ012 -> MembresiaBuilder
+    REQ013-REQ018 -> ClaseBuilder
+
+    REQ004-REQ006 se resuelven con
+    AuthController, Auth.php y nav.js.
+  end note
+}
+
+package "Capa de Acceso a Datos\n(DAO / Repository - PDO)" #FCE4EC {
+  rectangle "UsuarioDAO" as UsuarioDAO
+  rectangle "MembresiaDAO" as MembresiaDAO
+  rectangle "ClaseDAO" as ClaseDAO
+}
+
+database "Base de Datos\nMySQL" #E0E0E0 {
+  rectangle "usuarios\nid, nombre, cedula,\ncorreo, contrasena,\nrol, estado" as TUsuarios
+  rectangle "atletas" as TAtletas
+  rectangle "entrenadores" as TEntrenadores
+  rectangle "membresias" as TMembresias
+  rectangle "clases" as TClases
+  rectangle "reservas" as TReservas
+}
+
+Admin --> LoginView
+Trainer --> LoginView
+Athlete --> LoginView
+
+LoginView --> AuthController : login(correo, contrasena)
+AuthController --> UsuarioService : autenticar
+AuthController --> AuthHelper : crear / leer /\ncerrar sesion PHP
+UsuarioService --> UsuarioDAO : buscarPorCorreo /\nvalidar activo
+UsuarioDAO --> TUsuarios
+
+LoginView --> AdminView : rol Administrador
+LoginView --> TrainerView : rol Entrenador
+LoginView --> AthleteView : rol Atleta
+AdminView --> AuthController : me / logout
+TrainerView --> AuthController : me / logout
+AthleteView --> AuthController : me / logout
+
+AdminView --> UsuarioController : REQ001 crear\nREQ002 editar\nREQ003 desactivar
+AdminView --> MembresiaController : REQ007-REQ012\nmembresias y renovaciones
+AdminView --> ClaseController : REQ013-REQ018\nagenda de clases
+
+TrainerView --> ClaseController : REQ013-REQ018\ngestion de clases
+
+AthleteView --> ClaseController : ver clases,\nreservar y cancelar
+AthleteView --> MembresiaController : consultar, pagar\ny cancelar membresia
+
+UsuarioController --> AuthHelper : requiere rol\nAdministrador
+MembresiaController --> AuthHelper : requiere rol\nAdministrador / Atleta
+ClaseController --> AuthHelper : requiere rol\nAdministrador / Entrenador / Atleta
+
+UsuarioController --> UsuarioService
+MembresiaController --> MembresiaService
+ClaseController --> ClaseService
+
+UsuarioService --> UsuarioBuilder
+MembresiaService --> MembresiaBuilder
+ClaseService --> ClaseBuilder
+
+UsuarioBuilder --> UsuarioService : retorna Usuario
+MembresiaBuilder --> MembresiaService : retorna Membresia
+ClaseBuilder --> ClaseService : retorna Clase
+
+UsuarioService --> UsuarioDAO : crear / editar /\ndesactivar
+MembresiaService --> MembresiaDAO : crear / editar /\npagar / cancelar /\nconsultar / vencer
+ClaseService --> ClaseDAO : crear / editar /\neliminar / reservar /\nliberar cupos
+ClaseService ..> MembresiaDAO : valida membresia\nvigente antes de reservar
+
+MembresiaDAO --> TAtletas
+MembresiaDAO --> TMembresias
+ClaseDAO --> TAtletas
+ClaseDAO --> TEntrenadores
+ClaseDAO --> TClases
+ClaseDAO --> TReservas
+
+legend right
+| Color | Significado |
+|<#E3F2FD>| Presentacion HTML + Vanilla JS |
+|<#FFF3E0>| Controladores MVC en PHP |
+|<#E8F5E9>| Logica de negocio y sesion |
+|<#F3E5F5>| Patron Builder |
+|<#FCE4EC>| DAO con PDO |
+|<#E0E0E0>| Base de datos |
+endlegend
+
+@enduml

@@ -12,15 +12,27 @@
     const pagoForm = document.getElementById('pagoForm');
     const submitButton = document.getElementById('submitButton');
     const refreshButton = document.getElementById('refreshButton');
+    const cancelMembershipButton = document.getElementById('cancelMembershipButton');
+
+    let usarSesionAtleta = false;
 
     document.addEventListener('DOMContentLoaded', iniciar);
     atletaSelect.addEventListener('change', cargarMiMembresia);
     pagoForm.addEventListener('submit', pagarMembresia);
     refreshButton.addEventListener('click', cargarMiMembresia);
+    cancelMembershipButton.addEventListener('click', cancelarMembresia);
 
     async function iniciar() {
-        await cargarAtletas();
-        preseleccionarAtletaDesdeUrl();
+        const usuario = await obtenerSesion();
+        usarSesionAtleta = usuario && usuario.rol === 'Atleta';
+
+        if (usarSesionAtleta) {
+            atletaSelect.closest('label').hidden = true;
+        } else {
+            await cargarAtletas();
+            preseleccionarAtletaDesdeUrl();
+        }
+
         await cargarMiMembresia();
     }
 
@@ -38,13 +50,13 @@
 
     async function cargarMiMembresia() {
         const idAtleta = obtenerAtletaSeleccionado();
-        if (!idAtleta) {
+        if (!usarSesionAtleta && !idAtleta) {
             renderizarMembresia(null);
             return;
         }
 
         try {
-            const respuesta = await solicitar('miMembresia', { idAtleta });
+            const respuesta = await solicitar('miMembresia', usarSesionAtleta ? {} : { idAtleta });
             renderizarMembresia(respuesta.data);
         } catch (error) {
             mostrarEstado(error.message, 'error');
@@ -55,7 +67,7 @@
         evento.preventDefault();
 
         const idAtleta = obtenerAtletaSeleccionado();
-        if (!idAtleta) {
+        if (!usarSesionAtleta && !idAtleta) {
             mostrarEstado('Seleccione un atleta antes de pagar.', 'error');
             return;
         }
@@ -63,7 +75,7 @@
         try {
             submitButton.disabled = true;
             await enviar('pagarMembresia', {
-                idAtleta,
+                ...(usarSesionAtleta ? {} : { idAtleta }),
                 metodoPago: document.getElementById('metodoPago').value,
                 fechaPago: obtenerFechaActual(),
             });
@@ -74,6 +86,29 @@
             mostrarEstado(error.message, 'error');
         } finally {
             submitButton.disabled = false;
+        }
+    }
+
+    async function cancelarMembresia() {
+        const idAtleta = obtenerAtletaSeleccionado();
+        if (!usarSesionAtleta && !idAtleta) {
+            mostrarEstado('Seleccione un atleta antes de cancelar.', 'error');
+            return;
+        }
+
+        if (!window.confirm('Desea cancelar su membresia?')) {
+            return;
+        }
+
+        try {
+            cancelMembershipButton.disabled = true;
+            await enviar('cancelarMembresia', usarSesionAtleta ? {} : { idAtleta });
+            mostrarEstado('Membresia cancelada correctamente.', 'ok');
+            await cargarMiMembresia();
+        } catch (error) {
+            mostrarEstado(error.message, 'error');
+        } finally {
+            cancelMembershipButton.disabled = false;
         }
     }
 
@@ -98,6 +133,16 @@
         const query = new URLSearchParams({ action: accion, ...(parametros || {}) });
         const respuesta = await fetch(`${API_URL}?${query.toString()}`);
         return procesarRespuesta(respuesta);
+    }
+
+    async function obtenerSesion() {
+        const respuesta = await fetch('../controllers/AuthController.php?action=me');
+        if (!respuesta.ok) {
+            return null;
+        }
+
+        const cuerpo = await respuesta.json();
+        return cuerpo.success ? cuerpo.data : null;
     }
 
     async function enviar(accion, datos) {

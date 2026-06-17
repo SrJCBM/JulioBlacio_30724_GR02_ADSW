@@ -1,0 +1,213 @@
+@startuml
+title Diagrama de Clases - IronClad Box V2\nImplementacion real - REQ001 al REQ018
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+class Usuario {
+  - id: int
+  - nombre: String
+  - cedula: String
+  - correo: String
+  - contrasena: String
+  - rol: String
+  - estado: String
+  - fechaRegistro: Date
+  + toArray(): array
+  + fromArray(fila): Usuario
+}
+
+class UsuarioBuilder <<Builder>> {
+  - usuario: Usuario
+  + configurarNombre(nombre): UsuarioBuilder
+  + configurarCedula(cedula): UsuarioBuilder
+  + configurarCorreo(correo): UsuarioBuilder
+  + definirContrasena(contrasena): UsuarioBuilder
+  + asignarRol(rol): UsuarioBuilder
+  + definirEstado(estado): UsuarioBuilder
+  + construir(): Usuario
+}
+
+class UsuarioService {
+  + crear(datos): Usuario
+  + editar(id, datos): Usuario
+  + desactivar(id): void
+  + autenticar(correo, contrasena): Usuario
+}
+
+class UsuarioDAO {
+  + crear(usuario): Usuario
+  + actualizar(usuario): Usuario
+  + desactivar(id): boolean
+  + buscarPorId(id): Usuario
+  + buscarPorCorreo(correo): Usuario
+  + correoExiste(correo): boolean
+  + cedulaExiste(cedula): boolean
+}
+
+class UsuarioController {
+  + listar()
+  + crear()
+  + editar()
+  + desactivar()
+}
+
+class AuthController {
+  + login(correo, contrasena)
+  + logout()
+  + me()
+}
+
+class AuthHelper <<helper>> {
+  + authGuardarUsuario(usuario, idAtleta)
+  + authUsuarioActual(): array
+  + authCerrarSesion(): void
+  + authRequerirRol(roles): array
+}
+
+class Membresia {
+  - id: int
+  - tipo: String
+  - precio: double
+  - fechaInicio: Date
+  - fechaVencimiento: Date
+  - estado: String
+  - idAtleta: int
+  + toArray(): array
+  + fromArray(fila): Membresia
+}
+
+class MembresiaBuilder <<Builder>> {
+  - membresia: Membresia
+  + asignarAtleta(idAtleta): MembresiaBuilder
+  + configurarPlan(tipo, precio): MembresiaBuilder
+  + definirFechaInicio(fecha): MembresiaBuilder
+  + calcularFechaVencimiento(base): MembresiaBuilder
+  + definirEstado(estado): MembresiaBuilder
+  + marcarComoPagadoDesde(fechaPago): MembresiaBuilder
+  + construir(): Membresia
+}
+
+class MembresiaService {
+  + crear(datos): Membresia
+  + actualizar(datos): Membresia
+  + registrarPago(datos): Membresia
+  + cancelar(datos): Membresia
+  + obtenerActualPorAtleta(idAtleta): array
+  + listarAtletasConMembresia(): array
+}
+
+class MembresiaDAO {
+  + crear(membresia): Membresia
+  + actualizar(membresia): Membresia
+  + cancelar(idMembresia): Membresia
+  + buscarActualPorAtleta(idAtleta): Membresia
+  + buscarAtletaPorCorreo(correo): array
+  + listarAtletasConMembresia(): array
+}
+
+class MembresiaController {
+  + crear()
+  + editar()
+  + registrarPago()
+  + pagarMembresia()
+  + cancelarMembresia()
+  + miMembresia()
+}
+
+class Clase {
+  - id: int
+  - dia: Date
+  - hora: Time
+  - duracion: int
+  - cupoMaximo: int
+  - cuposDisponibles: int
+  - entrenadorId: int
+  + toArray(): array
+  + fromArray(fila): Clase
+}
+
+class ClaseBuilder <<Builder>> {
+  - clase: Clase
+  + definirDiaHora(dia, hora): ClaseBuilder
+  + definirDuracion(duracion): ClaseBuilder
+  + definirCupoMaximo(cupo, capacidad): ClaseBuilder
+  + definirCuposDisponibles(cupos): ClaseBuilder
+  + asignarEntrenador(entrenadorId): ClaseBuilder
+  + construir(): Clase
+}
+
+class ClaseService {
+  + crear(datos): Clase
+  + editar(id, datos): Clase
+  + eliminar(id): void
+  + listarClasesDisponibles(idAtleta): array
+  + reservar(datos): Reserva
+  + cancelar(datos): void
+}
+
+class ClaseDAO {
+  + crear(clase): Clase
+  + actualizar(clase): Clase
+  + eliminar(id): boolean
+  + consultarCupos(idClase): int
+  + reservarCupo(idAtleta, idClase): Reserva
+  + cancelarReservaYLiberarCupo(idReserva, idAtleta): void
+}
+
+class ClaseController {
+  + listar()
+  + crear()
+  + editar()
+  + eliminar()
+  + clases()
+  + reservar()
+  + cancelar()
+}
+
+class Reserva {
+  - id: int
+  - idAtleta: int
+  - idClase: int
+  - fechaReserva: DateTime
+  - estado: String
+  + toArray(): array
+}
+
+AuthController --> UsuarioService : autentica
+AuthController --> AuthHelper : usa sesion PHP
+
+note top of AuthController
+  nav.js pertenece a la capa de presentacion:
+  consume me/logout y renderiza el menu
+  visible segun el rol autenticado.
+end note
+
+UsuarioController --> AuthHelper : requiere Administrador
+UsuarioController --> UsuarioService
+UsuarioService --> UsuarioBuilder
+UsuarioService --> UsuarioDAO
+UsuarioBuilder --> Usuario
+
+MembresiaController --> AuthHelper : valida rol
+MembresiaController --> MembresiaService
+MembresiaService --> MembresiaBuilder
+MembresiaService --> MembresiaDAO
+MembresiaBuilder --> Membresia
+
+ClaseController --> AuthHelper : valida rol
+ClaseController --> ClaseService
+ClaseService --> ClaseBuilder
+ClaseService --> ClaseDAO
+ClaseService ..> MembresiaDAO : valida membresia vigente
+ClaseBuilder --> Clase
+ClaseDAO --> Reserva
+
+Usuario "1" --> "0..*" Clase : entrenador asignado
+Usuario "1" --> "0..*" Reserva : atleta reserva
+Usuario "1" --> "0..*" Membresia : posee
+Clase "1" --> "0..*" Reserva
+Membresia "0..*" --> "1" Usuario : idAtleta
+
+@enduml

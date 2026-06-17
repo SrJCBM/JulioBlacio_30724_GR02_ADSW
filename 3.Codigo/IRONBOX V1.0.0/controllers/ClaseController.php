@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../services/ClaseService.php';
+require_once __DIR__ . '/../includes/Auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -19,20 +20,24 @@ $accion = $_GET['action'] ?? $payload['action'] ?? 'listar';
 try {
     switch ($accion) {
         case 'listar':
+            authRequerirRol(['Administrador', 'Entrenador']);
             responder(['success' => true, 'data' => $service->listar()]);
             break;
 
         case 'entrenadores':
+            authRequerirRol(['Administrador', 'Entrenador']);
             responder(['success' => true, 'data' => $service->listarEntrenadores()]);
             break;
 
         case 'crear':
+            authRequerirRol(['Administrador', 'Entrenador']);
             asegurarMetodoPost();
             $clase = $service->crear($payload);
             responder(['success' => true, 'message' => 'Clase creada correctamente.', 'data' => $clase->toArray()], 201);
             break;
 
         case 'editar':
+            authRequerirRol(['Administrador', 'Entrenador']);
             asegurarMetodoPost();
             $id = obtenerId($payload);
             $clase = $service->editar($id, $payload);
@@ -40,6 +45,7 @@ try {
             break;
 
         case 'eliminar':
+            authRequerirRol(['Administrador', 'Entrenador']);
             asegurarMetodoPost();
             $service->eliminar(obtenerId($payload));
             responder(['success' => true, 'message' => 'Clase eliminada correctamente.']);
@@ -47,10 +53,12 @@ try {
 
         // Inscripciones de atletas (reservas) absorbidas por el modulo de Clases.
         case 'atletas':
+            authRequerirRol(['Atleta']);
             responder(['success' => true, 'data' => $service->listarAtletas()]);
             break;
 
         case 'clases':
+            authRequerirRol(['Atleta']);
             responder([
                 'success' => true,
                 'data' => $service->listarClasesDisponibles(obtenerIdAtleta($payload)),
@@ -58,6 +66,7 @@ try {
             break;
 
         case 'misReservas':
+            authRequerirRol(['Atleta']);
             responder([
                 'success' => true,
                 'data' => $service->listarReservasActivas(obtenerIdAtleta($payload)),
@@ -65,7 +74,9 @@ try {
             break;
 
         case 'reservar':
+            authRequerirRol(['Atleta']);
             asegurarMetodoPost();
+            $payload['idAtleta'] = obtenerIdAtleta($payload);
             $reserva = $service->reservar($payload);
             responder([
                 'success' => true,
@@ -75,7 +86,9 @@ try {
             break;
 
         case 'cancelar':
+            authRequerirRol(['Atleta']);
             asegurarMetodoPost();
+            $payload['idAtleta'] = obtenerIdAtleta($payload);
             $service->cancelar($payload);
             responder(['success' => true, 'message' => 'Reserva cancelada correctamente.']);
             break;
@@ -83,6 +96,8 @@ try {
         default:
             responder(['success' => false, 'message' => 'Accion no soportada.'], 404);
     }
+} catch (AuthException $error) {
+    responder(['success' => false, 'message' => $error->getMessage()], $error->getEstadoHttp());
 } catch (InvalidArgumentException | DomainException $error) {
     responder(['success' => false, 'message' => $error->getMessage()], 422);
 } catch (Throwable $error) {
@@ -120,7 +135,13 @@ function obtenerId(array $payload): int
 
 function obtenerIdAtleta(array $payload): int
 {
-    return (int) ($_GET['idAtleta'] ?? $payload['idAtleta'] ?? $payload['id_atleta'] ?? 0);
+    return (int) (
+        $_GET['idAtleta']
+        ?? $payload['idAtleta']
+        ?? $payload['id_atleta']
+        ?? $_SESSION['id_atleta']
+        ?? 0
+    );
 }
 
 function responder(array $respuesta, int $estadoHttp = 200): void

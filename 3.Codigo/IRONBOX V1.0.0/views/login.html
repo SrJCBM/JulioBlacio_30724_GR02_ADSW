@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IronClad Box | Login</title>
+    <style>
+        :root {
+            --bg: #f4f6f8;
+            --panel: #ffffff;
+            --ink: #1f252c;
+            --muted: #68717d;
+            --line: #dce2e8;
+            --brand: #b8232f;
+            --brand-dark: #8e1923;
+            --danger: #b42318;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.45;
+        }
+
+        main {
+            width: min(100%, 920px);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 12px 30px rgba(31, 35, 40, 0.1);
+            overflow: hidden;
+        }
+
+        .intro {
+            background: #20242a;
+            color: #fff;
+            padding: 34px;
+            display: grid;
+            align-content: center;
+            gap: 16px;
+        }
+
+        .intro h1 {
+            margin: 0;
+            font-size: clamp(1.7rem, 3vw, 2.5rem);
+            letter-spacing: 0;
+        }
+
+        .intro p {
+            margin: 0;
+            color: #d6dce3;
+        }
+
+        form {
+            padding: 30px;
+            display: grid;
+            gap: 16px;
+            align-content: center;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 0.92rem;
+        }
+
+        input {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 9px 11px;
+            color: var(--ink);
+            font: inherit;
+            background: #fff;
+        }
+
+        input:focus,
+        button:focus {
+            outline: 3px solid rgba(31, 111, 235, 0.22);
+            outline-offset: 1px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 11px 14px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            color: #fff;
+            background: var(--brand);
+        }
+
+        button:hover {
+            background: var(--brand-dark);
+        }
+
+        button:disabled {
+            opacity: 0.65;
+            cursor: progress;
+        }
+
+        .status {
+            min-height: 22px;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        @media (max-width: 760px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body>
+    <main>
+        <section class="intro" aria-labelledby="intro-title">
+            <h1 id="intro-title">IronClad Box</h1>
+            <p>Acceso por rol al prototipo MVC con PHP nativo, Vanilla JS y PDO MySQL.</p>
+        </section>
+
+        <form id="loginForm" autocomplete="on">
+            <h2>Iniciar sesion</h2>
+
+            <label for="correo">
+                Correo
+                <input type="email" id="correo" name="correo" required>
+            </label>
+
+            <label for="contrasena">
+                Contrasena
+                <input type="password" id="contrasena" name="contrasena" required>
+            </label>
+
+            <button type="submit" id="submitButton">Entrar</button>
+            <p class="status" id="statusMessage" role="status" aria-live="polite"></p>
+        </form>
+    </main>
+
+    <script src="../assets/js/login.js"></script>
+</body>
+</html>

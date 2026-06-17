@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Mensaje.php';
+require_once __DIR__ . '/../includes/Database.php';
 
 class ComunicacionDAO
 {
@@ -8,107 +9,7 @@ class ComunicacionDAO
 
     public function __construct(?PDO $conexion = null)
     {
-        $this->conexion = $conexion ?? $this->crearConexionPdoSimulada();
-        $this->inicializarEsquemaSimulado();
-    }
-
-    private function crearConexionPdoSimulada(): PDO
-    {
-        $directorioDatos = __DIR__ . '/../data';
-        if (!is_dir($directorioDatos)) {
-            mkdir($directorioDatos, 0777, true);
-        }
-
-        $rutaBase = $directorioDatos . '/ironclad_box.sqlite';
-        $pdo = new PDO('sqlite:' . $rutaBase);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec('PRAGMA foreign_keys = ON;');
-
-        return $pdo;
-
-        /*
-        Para MySQL real:
-        $dsn = 'mysql:host=localhost;dbname=ironclad_box;charset=utf8mb4';
-        return new PDO($dsn, 'usuario', 'password', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        */
-    }
-
-    private function inicializarEsquemaSimulado(): void
-    {
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS atletas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                fecha_registro TEXT NOT NULL
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS entrenadores (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                disponible INTEGER NOT NULL DEFAULT 1
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS mensajes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                contenido TEXT NOT NULL,
-                fecha_envio TEXT NOT NULL,
-                tipo TEXT NOT NULL CHECK (tipo IN ("Mensaje", "Anuncio")),
-                id_atleta INTEGER NULL,
-                id_entrenador INTEGER NULL,
-                FOREIGN KEY (id_atleta) REFERENCES atletas(id),
-                FOREIGN KEY (id_entrenador) REFERENCES entrenadores(id)
-            )'
-        );
-
-        $this->sembrarDatosBase();
-    }
-
-    private function sembrarDatosBase(): void
-    {
-        $atletas = [
-            ['nombre' => 'Daniela Moya', 'email' => 'daniela.moya@ironcladbox.local'],
-            ['nombre' => 'Nicolas Perez', 'email' => 'nicolas.perez@ironcladbox.local'],
-            ['nombre' => 'Andrea Vega', 'email' => 'andrea.vega@ironcladbox.local'],
-            ['nombre' => 'Sebastian Flores', 'email' => 'sebastian.flores@ironcladbox.local'],
-        ];
-
-        $insertAtleta = $this->conexion->prepare(
-            'INSERT OR IGNORE INTO atletas (nombre, email, fecha_registro)
-             VALUES (:nombre, :email, :fecha_registro)'
-        );
-
-        foreach ($atletas as $atleta) {
-            $insertAtleta->execute([
-                'nombre' => $atleta['nombre'],
-                'email' => $atleta['email'],
-                'fecha_registro' => date('Y-m-d'),
-            ]);
-        }
-
-        $entrenadores = [
-            ['nombre' => 'Valeria Rios', 'email' => 'valeria.rios@ironcladbox.local'],
-            ['nombre' => 'Mateo Silva', 'email' => 'mateo.silva@ironcladbox.local'],
-            ['nombre' => 'Camila Torres', 'email' => 'camila.torres@ironcladbox.local'],
-        ];
-
-        $insertEntrenador = $this->conexion->prepare(
-            'INSERT OR IGNORE INTO entrenadores (nombre, email, disponible)
-             VALUES (:nombre, :email, 1)'
-        );
-
-        foreach ($entrenadores as $entrenador) {
-            $insertEntrenador->execute($entrenador);
-        }
+        $this->conexion = $conexion ?? Database::conectar();
     }
 
     public function crear(Mensaje $mensaje): Mensaje
@@ -186,7 +87,7 @@ class ComunicacionDAO
     public function listarAtletas(): array
     {
         $sentencia = $this->conexion->query(
-            'SELECT id, nombre, email, fecha_registro FROM atletas ORDER BY nombre ASC'
+            'SELECT id, nombre, correo, fecha_registro FROM atletas ORDER BY nombre ASC'
         );
 
         return $sentencia->fetchAll();
@@ -195,7 +96,7 @@ class ComunicacionDAO
     public function listarEntrenadores(): array
     {
         $sentencia = $this->conexion->query(
-            'SELECT id, nombre, email, disponible FROM entrenadores ORDER BY nombre ASC'
+            'SELECT id, nombre, correo, disponible FROM entrenadores ORDER BY nombre ASC'
         );
 
         return $sentencia->fetchAll();

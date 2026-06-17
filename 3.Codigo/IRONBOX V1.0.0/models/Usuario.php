@@ -4,7 +4,8 @@ class Usuario
 {
     private ?int $id;
     private string $nombre;
-    private string $email;
+    private string $cedula;
+    private string $correo;
     private string $contrasena;
     private string $rol;
     private string $estado;
@@ -13,7 +14,8 @@ class Usuario
     public function __construct(
         ?int $id,
         string $nombre,
-        string $email,
+        string $cedula,
+        string $correo,
         string $contrasena,
         string $rol,
         string $estado,
@@ -21,7 +23,8 @@ class Usuario
     ) {
         $this->id = $id;
         $this->nombre = $nombre;
-        $this->email = $email;
+        $this->cedula = $cedula;
+        $this->correo = $correo;
         $this->contrasena = $contrasena;
         $this->rol = $rol;
         $this->estado = $estado;
@@ -38,9 +41,14 @@ class Usuario
         return $this->nombre;
     }
 
-    public function getEmail(): string
+    public function getCedula(): string
     {
-        return $this->email;
+        return $this->cedula;
+    }
+
+    public function getCorreo(): string
+    {
+        return $this->correo;
     }
 
     public function getContrasena(): string
@@ -68,7 +76,8 @@ class Usuario
         $usuario = [
             'id' => $this->id,
             'nombre' => $this->nombre,
-            'email' => $this->email,
+            'cedula' => $this->cedula,
+            'correo' => $this->correo,
             'rol' => $this->rol,
             'estado' => $this->estado,
             'fechaRegistro' => $this->fechaRegistro,
@@ -86,7 +95,8 @@ class Usuario
         return new self(
             isset($fila['id']) ? (int) $fila['id'] : null,
             (string) $fila['nombre'],
-            (string) $fila['email'],
+            (string) ($fila['cedula'] ?? ''),
+            (string) ($fila['correo'] ?? $fila['email']),
             (string) ($fila['contrasena'] ?? $fila['contraseña'] ?? ''),
             (string) $fila['rol'],
             (string) $fila['estado'],

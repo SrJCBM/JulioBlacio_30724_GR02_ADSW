@@ -1,5 +1,5 @@
 @startuml
-title Arquitectura por Capas - IronClad Box\nMVC + Patron Builder
+title Arquitectura por Capas - IronClad Box (MVP implementado)\nMVC + Patron Builder
 
 left to right direction
 
@@ -16,74 +16,54 @@ actor "Administrador" as Admin
 actor "Entrenador" as Trainer
 actor "Atleta" as Athlete
 
-package "Capa de Presentacion\n(View)" #E3F2FD {
-  rectangle "AdminDashboardView\nGestiona clases,\nmembresias, usuarios,\nreportes y dashboard" as AdminView
-  rectangle "TrainerDashboardView\nGestiona progreso,\nrutinas y comunicacion" as TrainerView
-  rectangle "AthleteDashboardView\nGestiona reservas,\nmembresia, salud\ny seguimiento" as AthleteView
+package "Capa de Presentacion\n(View - HTML + Vanilla JS)" #E3F2FD {
+  rectangle "Vistas Administrador\ngestion_clases\ngestion_membresias\ngestion_usuarios\nreportes_admin" as AdminView
+  rectangle "Vistas Entrenador\nseguimiento_progreso\ncomunicacion_entrenador" as TrainerView
+  rectangle "Vistas Atleta\nreservas_atleta\nmembresia_atleta\nprogreso_atleta\nbandeja_atleta" as AthleteView
 }
 
-package "Capa Controladora\n(Controller - MVC)" #FFF3E0 {
+package "Capa Controladora\n(Controller - PHP)" #FFF3E0 {
   rectangle "ClaseController" as ClaseController
   rectangle "MembresiaController" as MembresiaController
   rectangle "UsuarioController" as UsuarioController
   rectangle "ProgresoController" as ProgresoController
   rectangle "ComunicacionController" as ComunicacionController
   rectangle "ReporteController" as ReporteController
-  rectangle "SaludController" as SaludController
-  rectangle "NoticiaController" as NoticiaController
-  rectangle "ExportacionController" as ExportacionController
-  rectangle "DashboardController" as DashboardController
 }
 
-package "Capa de Logica de Negocio\n(Model / Services)" #E8F5E9 {
-  rectangle "ClaseService\nGestiona horarios,\ncupos y entrenadores" as ClaseService
-  rectangle "MembresiaService\nControla membresias,\npagos y renovaciones" as MembresiaService
-  rectangle "UsuarioService\nAdministra cuentas,\nroles y permisos" as UsuarioService
-  rectangle "ProgresoService\nRegistra resultados WOD\ny consulta historial" as ProgresoService
-  rectangle "ComunicacionService\nGestiona mensajes,\nanuncios e historial" as ComunicacionService
-  rectangle "ReporteService\nGenera reportes\nde asistencia y pagos" as ReporteService
-  rectangle "SaludService\nSincroniza datos\nde aplicaciones externas" as SaludService
-  rectangle "NoticiaService\nAdministra noticias\ny comunicados" as NoticiaService
-  rectangle "ExportacionService\nGenera archivos\nPDF y CSV" as ExportacionService
-  rectangle "DashboardService\nCalcula indicadores\ndel gimnasio" as DashboardService
+package "Capa de Logica de Negocio\n(Service + Builder)" #E8F5E9 {
+  rectangle "ClaseService\nHorarios, cupos,\nentrenadores e\ninscripciones" as ClaseService
+  rectangle "MembresiaService\nMembresias, pagos\ny vencimientos" as MembresiaService
+  rectangle "UsuarioService\nCuentas, roles\ny estado" as UsuarioService
+  rectangle "ProgresoService\nResultados WOD\ne historial" as ProgresoService
+  rectangle "ComunicacionService\nMensajes y\nanuncios" as ComunicacionService
+  rectangle "ReporteService\nReportes de\nfinanzas y asistencia" as ReporteService
 
-  rectangle "ClaseBuilder\n<<Builder>>\nConstruye objeto Clase:\nfecha, hora, cupo,\nentrenador" as ClaseBuilder #F3E5F5
-  rectangle "MembresiaBuilder\n<<Builder>>\nConstruye objeto Membresia:\ntipo, precio, estado,\nvencimiento" as MembresiaBuilder #F3E5F5
-  rectangle "UsuarioBuilder\n<<Builder>>\nConstruye objeto Usuario:\nnombre, correo, rol,\nestado" as UsuarioBuilder #F3E5F5
-  rectangle "RegistroProgresoBuilder\n<<Builder>>\nConstruye registro:\nWOD, tiempo, peso,\nrepeticiones" as ProgresoBuilder #F3E5F5
-  rectangle "ReporteBuilder\n<<Builder>>\nConstruye reporte:\nfiltros, datos,\nformato y salida" as ReporteBuilder #F3E5F5
-  rectangle "DashboardBuilder\n<<Builder>>\nConstruye indicadores:\nasistencia, ingresos,\nmembresias y progreso" as DashboardBuilder #F3E5F5
+  rectangle "ClaseBuilder\n<<Builder>>\ndia, hora, duracion,\ncupo, entrenador" as ClaseBuilder #F3E5F5
+  rectangle "MembresiaBuilder\n<<Builder>>\ntipo, precio, estado,\nfechas" as MembresiaBuilder #F3E5F5
+  rectangle "UsuarioBuilder\n<<Builder>>\nnombre, email, rol,\nestado, hash" as UsuarioBuilder #F3E5F5
+  rectangle "RegistroProgresoBuilder\n<<Builder>>\nWOD, tiempo, peso,\nrepeticiones" as ProgresoBuilder #F3E5F5
+  rectangle "ReporteBuilder\n<<Builder>>\nfiltros, datos,\nformato y resumen" as ReporteBuilder #F3E5F5
 }
 
-package "Capa de Acceso a Datos\n(DAO / Repository)" #FCE4EC {
+package "Capa de Acceso a Datos\n(DAO - PDO)" #FCE4EC {
   rectangle "ClaseDAO" as ClaseDAO
   rectangle "MembresiaDAO" as MembresiaDAO
   rectangle "UsuarioDAO" as UsuarioDAO
   rectangle "ProgresoDAO" as ProgresoDAO
   rectangle "ComunicacionDAO" as ComunicacionDAO
   rectangle "ReporteDAO" as ReporteDAO
-  rectangle "SaludDAO" as SaludDAO
-  rectangle "NoticiaDAO" as NoticiaDAO
-  rectangle "ExportacionDAO" as ExportacionDAO
-  rectangle "DashboardDAO" as DashboardDAO
 }
 
-database "Base de Datos\nPostgreSQL / MySQL" #E0E0E0 {
+database "Base de Datos\nMySQL" #E0E0E0 {
+  rectangle "usuarios" as TUsuarios
   rectangle "clases" as TClases
   rectangle "membresias" as TMembresias
-  rectangle "usuarios" as TUsuarios
+  rectangle "reservas" as TReservas
   rectangle "progreso_atletas" as TProgreso
   rectangle "mensajes" as TMensajes
   rectangle "reportes" as TReportes
-  rectangle "datos_salud" as TSalud
-  rectangle "noticias" as TNoticias
-  rectangle "pagos" as TPagos
-}
-
-cloud "Servicios Externos" #FFFDE7 {
-  rectangle "Pasarela de pagos" as PagoAPI
-  rectangle "Google Fit\nApple Health\nSamsung Health" as HealthAPI
-  rectangle "Servicio de\nNotificaciones" as NotificacionAPI
+  rectangle "atletas / entrenadores" as TPersonas
 }
 
 Admin --> AdminView
@@ -94,18 +74,14 @@ AdminView --> ClaseController
 AdminView --> MembresiaController
 AdminView --> UsuarioController
 AdminView --> ReporteController
-AdminView --> NoticiaController
-AdminView --> ExportacionController
-AdminView --> DashboardController
 
 TrainerView --> ProgresoController
 TrainerView --> ComunicacionController
 
-AthleteView --> ProgresoController
-AthleteView --> SaludController
-AthleteView --> ComunicacionController
-AthleteView --> MembresiaController
 AthleteView --> ClaseController
+AthleteView --> MembresiaController
+AthleteView --> ProgresoController
+AthleteView --> ComunicacionController
 
 ClaseController --> ClaseService
 MembresiaController --> MembresiaService
@@ -113,18 +89,12 @@ UsuarioController --> UsuarioService
 ProgresoController --> ProgresoService
 ComunicacionController --> ComunicacionService
 ReporteController --> ReporteService
-SaludController --> SaludService
-NoticiaController --> NoticiaService
-ExportacionController --> ExportacionService
-DashboardController --> DashboardService
 
-ClaseService --> ClaseBuilder
-MembresiaService --> MembresiaBuilder
-UsuarioService --> UsuarioBuilder
-ProgresoService --> ProgresoBuilder
-ReporteService --> ReporteBuilder
-ExportacionService --> ReporteBuilder
-DashboardService --> DashboardBuilder
+ClaseService --> ClaseBuilder : construye / retorna Clase
+MembresiaService --> MembresiaBuilder : construye / retorna Membresia
+UsuarioService --> UsuarioBuilder : construye / retorna Usuario
+ProgresoService --> ProgresoBuilder : construye / retorna RegistroProgreso
+ReporteService --> ReporteBuilder : formatea / retorna Reporte
 
 ClaseService --> ClaseDAO
 MembresiaService --> MembresiaDAO
@@ -132,35 +102,34 @@ UsuarioService --> UsuarioDAO
 ProgresoService --> ProgresoDAO
 ComunicacionService --> ComunicacionDAO
 ReporteService --> ReporteDAO
-SaludService --> SaludDAO
-NoticiaService --> NoticiaDAO
-ExportacionService --> ExportacionDAO
-DashboardService --> DashboardDAO
+
+' Validacion cruzada real: una reserva exige membresia vigente
+ClaseService ..> MembresiaDAO : valida membresia\nvigente (reservas)
 
 ClaseDAO --> TClases
+ClaseDAO --> TReservas
+ClaseDAO --> TPersonas
 MembresiaDAO --> TMembresias
-MembresiaDAO --> TPagos
+MembresiaDAO --> TPersonas
 UsuarioDAO --> TUsuarios
 ProgresoDAO --> TProgreso
 ComunicacionDAO --> TMensajes
 ReporteDAO --> TReportes
-SaludDAO --> TSalud
-NoticiaDAO --> TNoticias
 
-MembresiaService --> PagoAPI
-SaludService --> HealthAPI
-ComunicacionService --> NotificacionAPI
-NoticiaService --> NotificacionAPI
+note bottom of ComunicacionService
+  ComunicacionService NO usa Builder:
+  el Mensaje es una entidad simple,
+  se construye directo y se persiste.
+end note
 
 legend right
 |= Color |= Significado |
-|<#E3F2FD>| Capa de Presentacion |
-|<#FFF3E0>| Capa Controladora MVC |
-|<#E8F5E9>| Logica de Negocio |
+|<#E3F2FD>| Capa de Presentacion (HTML + Vanilla JS) |
+|<#FFF3E0>| Capa Controladora (PHP) |
+|<#E8F5E9>| Logica de Negocio (Service) |
 |<#F3E5F5>| Patron Builder |
-|<#FCE4EC>| Acceso a Datos |
+|<#FCE4EC>| Acceso a Datos (DAO + PDO) |
 |<#E0E0E0>| Base de Datos |
-|<#FFFDE7>| Servicios Externos |
 endlegend
 
 @enduml

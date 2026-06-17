@@ -1,0 +1,5 @@
+.git
+.gitignore
+**/data/*.sqlite
+**/.env
+**/node_modules

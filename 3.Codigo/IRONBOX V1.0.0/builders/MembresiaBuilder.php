@@ -4,7 +4,7 @@ require_once __DIR__ . '/../models/Membresia.php';
 
 class MembresiaBuilder
 {
-    private const ESTADOS_VALIDOS = ['Pagado', 'Pendiente', 'Vencido'];
+    private const ESTADOS_VALIDOS = ['Pagado', 'Pendiente', 'Vencido', 'Cancelada'];
     private const DURACION_DIAS = 30;
 
     private ?int $id = null;
@@ -91,7 +91,7 @@ class MembresiaBuilder
     {
         $estado = trim($estado);
         if (!in_array($estado, self::ESTADOS_VALIDOS, true)) {
-            throw new InvalidArgumentException('El estado debe ser Pagado, Pendiente o Vencido.');
+            throw new InvalidArgumentException('El estado debe ser Pagado, Pendiente, Vencido o Cancelada.');
         }
 
         $this->estado = $estado;

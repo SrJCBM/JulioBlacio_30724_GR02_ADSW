@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IronClad Box | Inicio</title>
+    <link rel="stylesheet" href="../assets/css/nav.css">
+    <style>
+        :root {
+            --bg: #f4f6f8;
+            --panel: #ffffff;
+            --ink: #1f252c;
+            --muted: #68717d;
+            --line: #dce2e8;
+            --brand: #b8232f;
+            --brand-dark: #8e1923;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.45;
+        }
+
+        header {
+            background: #20242a;
+            color: #fff;
+            padding: 24px clamp(16px, 4vw, 48px);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: clamp(1.45rem, 2.4vw, 2.15rem);
+            letter-spacing: 0;
+        }
+
+        header p {
+            margin: 8px 0 0;
+            max-width: 760px;
+            color: #d6dce3;
+        }
+
+        main {
+            width: min(1180px, calc(100% - 32px));
+            margin: 24px auto 42px;
+            display: grid;
+            gap: 22px;
+        }
+
+        .panel {
+            min-width: 0;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(31, 35, 40, 0.06);
+        }
+
+        .panel-header {
+            padding: 18px 20px 12px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            letter-spacing: 0;
+        }
+
+        .flow {
+            padding: 18px 20px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+        }
+
+        .role-card {
+            display: grid;
+            align-content: start;
+            gap: 12px;
+            min-height: 230px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 16px;
+            background: #fff;
+        }
+
+        .role-card h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .role-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .module-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .module-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--ink);
+            text-decoration: none;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-weight: 700;
+            background: #f9fafb;
+        }
+
+        .module-link:hover,
+        .module-link:focus {
+            border-color: var(--brand);
+            color: var(--brand-dark);
+            outline: none;
+        }
+
+        .module-link span {
+            color: var(--muted);
+            font-weight: 400;
+            font-size: 0.86rem;
+        }
+
+        .architecture-grid {
+            padding: 18px 20px 20px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .pattern-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #f9fafb;
+            padding: 16px;
+            display: grid;
+            gap: 8px;
+            align-content: start;
+            min-height: 156px;
+        }
+
+        .pattern-card h3 {
+            margin: 0;
+            font-size: 0.98rem;
+            color: var(--brand-dark);
+        }
+
+        .pattern-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .pattern-card code {
+            color: var(--ink);
+            font-size: 0.86rem;
+            word-break: break-word;
+        }
+
+        @media (max-width: 980px) {
+            .architecture-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 620px) {
+            main {
+                width: min(100% - 24px, 1180px);
+            }
+
+            .architecture-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .role-card {
+                min-height: 0;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body>
+    <header>
+        <h1>Panel de navegacion del MVP</h1>
+        <p>Sesion activa: <strong id="sessionUserName">-</strong> · <span id="sessionUserRole">-</span></p>
+    </header>
+
+    <main>
+        <section class="panel" aria-labelledby="modules-title">
+            <div class="panel-header">
+                <h2 id="modules-title">Modulos disponibles</h2>
+            </div>
+
+            <div class="flow">
+                <article class="role-card" data-roles="Administrador">
+                    <h3>Administrador</h3>
+                    <p>Configura cuentas, membresias, agenda de clases y reportes.</p>
+                    <div class="module-list">
+                        <a class="module-link" href="gestion_usuarios.html">Usuarios</a>
+                        <a class="module-link" href="gestion_membresias.html">Membresias</a>
+                        <a class="module-link" href="gestion_clases.html">Clases</a>
+                        <a class="module-link" href="reportes_admin.html">Reportes</a>
+                    </div>
+                </article>
+
+                <article class="role-card" data-roles="Entrenador">
+                    <h3>Entrenador</h3>
+                    <p>Gestiona las clases disponibles del box.</p>
+                    <div class="module-list">
+                        <a class="module-link" href="gestion_clases.html">Clases</a>
+                    </div>
+                </article>
+
+                <article class="role-card" data-roles="Atleta">
+                    <h3>Atleta</h3>
+                    <p>Consulta clases disponibles y administra su membresia.</p>
+                    <div class="module-list">
+                        <a class="module-link" href="reservas_atleta.html">Clases</a>
+                        <a class="module-link" href="membresia_atleta.html">Mi membresia</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" aria-labelledby="architecture-title" data-roles="Administrador">
+            <div class="panel-header">
+                <h2 id="architecture-title">Evidencia tecnica del prototipo</h2>
+            </div>
+
+            <div class="architecture-grid">
+                <article class="pattern-card">
+                    <h3>MVC por capas</h3>
+                    <p>Las vistas HTML/JS consumen controladores PHP, que delegan reglas a servicios y persistencia a DAO.</p>
+                    <code>View -> Controller -> Service -> DAO</code>
+                </article>
+
+                <article class="pattern-card">
+                    <h3>Builder</h3>
+                    <p>Construccion validada de entidades complejas como Usuario, Clase, Membresia, Progreso y Reporte.</p>
+                    <code>Service -> Builder -> Entidad valida</code>
+                </article>
+
+                <article class="pattern-card">
+                    <h3>DAO / Repository</h3>
+                    <p>El SQL se mantiene aislado en repositorios con PDO sobre MySQL, listo para despliegue.</p>
+                    <code>DAO -> PDO -> MySQL</code>
+                </article>
+
+                <article class="pattern-card">
+                    <h3>Sesion y roles</h3>
+                    <p>AuthController y Auth.php validan login, estado activo y permisos; nav.js solo renderiza el menu.</p>
+                    <code>correo + contrasena -> rol</code>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script src="../assets/js/nav.js"></script>
+</body>
+</html>

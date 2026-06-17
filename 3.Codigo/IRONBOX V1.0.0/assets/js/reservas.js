@@ -11,11 +11,22 @@
     const clasesEmpty = document.getElementById('clasesEmpty');
     const reservasEmpty = document.getElementById('reservasEmpty');
 
+    let usarSesionAtleta = false;
+
     document.addEventListener('DOMContentLoaded', iniciar);
     atletaSelect.addEventListener('change', cargarPanelAtleta);
     refreshButton.addEventListener('click', cargarPanelAtleta);
 
     async function iniciar() {
+        const usuario = await obtenerSesion();
+        usarSesionAtleta = usuario && usuario.rol === 'Atleta';
+
+        if (usarSesionAtleta) {
+            atletaSelect.closest('label').hidden = true;
+            await cargarPanelAtleta();
+            return;
+        }
+
         await cargarAtletas();
     }
 
@@ -37,7 +48,7 @@
         clasesBody.innerHTML = '';
         reservasBody.innerHTML = '';
 
-        if (!idAtleta) {
+        if (!usarSesionAtleta && !idAtleta) {
             clasesEmpty.hidden = false;
             reservasEmpty.hidden = false;
             clasesEmpty.textContent = 'Seleccione un atleta para ver clases disponibles.';
@@ -47,8 +58,8 @@
 
         try {
             const [clases, reservas] = await Promise.all([
-                solicitar('clases', { idAtleta }),
-                solicitar('misReservas', { idAtleta }),
+                solicitar('clases', usarSesionAtleta ? {} : { idAtleta }),
+                solicitar('misReservas', usarSesionAtleta ? {} : { idAtleta }),
             ]);
             renderizarClases(clases.data);
             renderizarReservas(reservas.data);
@@ -123,7 +134,7 @@
 
         try {
             evento.currentTarget.disabled = true;
-            await enviar('reservar', { idAtleta, idClase });
+            await enviar('reservar', { ...(usarSesionAtleta ? {} : { idAtleta }), idClase });
             mostrarEstado('Reserva confirmada correctamente.', 'ok');
             await cargarPanelAtleta();
         } catch (error) {
@@ -142,7 +153,7 @@
 
         try {
             evento.currentTarget.disabled = true;
-            await enviar('cancelar', { idAtleta, id });
+            await enviar('cancelar', { ...(usarSesionAtleta ? {} : { idAtleta }), id });
             mostrarEstado('Reserva cancelada correctamente.', 'ok');
             await cargarPanelAtleta();
         } catch (error) {
@@ -155,6 +166,16 @@
         const query = new URLSearchParams({ action: accion, ...(parametros || {}) });
         const respuesta = await fetch(`${API_URL}?${query.toString()}`);
         return procesarRespuesta(respuesta);
+    }
+
+    async function obtenerSesion() {
+        const respuesta = await fetch('../controllers/AuthController.php?action=me');
+        if (!respuesta.ok) {
+            return null;
+        }
+
+        const cuerpo = await respuesta.json();
+        return cuerpo.success ? cuerpo.data : null;
     }
 
     async function enviar(accion, datos) {

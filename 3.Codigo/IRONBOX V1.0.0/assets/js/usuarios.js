@@ -7,7 +7,8 @@
     const formTitle = document.getElementById('form-title');
     const usuarioIdInput = document.getElementById('usuarioId');
     const nombreInput = document.getElementById('nombre');
-    const emailInput = document.getElementById('email');
+    const cedulaInput = document.getElementById('cedula');
+    const correoInput = document.getElementById('correo');
     const contrasenaInput = document.getElementById('contrasena');
     const rolSelect = document.getElementById('rol');
     const estadoSelect = document.getElementById('estado');
@@ -36,7 +37,8 @@
         const datos = {
             id: Number(usuarioIdInput.value || 0),
             nombre: nombreInput.value.trim(),
-            email: emailInput.value.trim(),
+            cedula: cedulaInput.value.trim(),
+            correo: correoInput.value.trim(),
             contrasena: contrasenaInput.value,
             rol: rolSelect.value,
             estado: estadoSelect.value,
@@ -72,8 +74,9 @@
             fila.innerHTML = `
                 <td>
                     <strong>${escaparHtml(usuario.nombre)}</strong><br>
-                    <span>${escaparHtml(usuario.email)}</span>
+                    <span>${escaparHtml(usuario.correo)}</span>
                 </td>
+                <td>${escaparHtml(usuario.cedula || '-')}</td>
                 <td>${escaparHtml(usuario.rol)}</td>
                 <td><span class="tag ${escaparHtml(usuario.estado)}">${escaparHtml(usuario.estado)}</span></td>
                 <td>${escaparHtml(formatearFecha(usuario.fechaRegistro))}</td>
@@ -130,7 +133,8 @@
 
         usuarioIdInput.value = usuario.id;
         nombreInput.value = usuario.nombre;
-        emailInput.value = usuario.email;
+        cedulaInput.value = usuario.cedula || '';
+        correoInput.value = usuario.correo;
         contrasenaInput.value = '';
         contrasenaInput.required = false;
         contrasenaInput.placeholder = 'Dejar vacio para conservarla';

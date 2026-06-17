@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Membresia.php';
+require_once __DIR__ . '/../includes/Database.php';
 
 class MembresiaDAO
 {
@@ -8,78 +9,7 @@ class MembresiaDAO
 
     public function __construct(?PDO $conexion = null)
     {
-        $this->conexion = $conexion ?? $this->crearConexionPdoSimulada();
-        $this->inicializarEsquemaSimulado();
-    }
-
-    private function crearConexionPdoSimulada(): PDO
-    {
-        $directorioDatos = __DIR__ . '/../data';
-        if (!is_dir($directorioDatos)) {
-            mkdir($directorioDatos, 0777, true);
-        }
-
-        $rutaBase = $directorioDatos . '/ironclad_box.sqlite';
-        $pdo = new PDO('sqlite:' . $rutaBase);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec('PRAGMA foreign_keys = ON;');
-
-        return $pdo;
-
-        /*
-        Para MySQL real:
-        $dsn = 'mysql:host=localhost;dbname=ironclad_box;charset=utf8mb4';
-        return new PDO($dsn, 'usuario', 'password', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        */
-    }
-
-    private function inicializarEsquemaSimulado(): void
-    {
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS atletas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                fecha_registro TEXT NOT NULL
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS membresias (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tipo TEXT NOT NULL,
-                precio REAL NOT NULL,
-                fecha_inicio TEXT NOT NULL,
-                fecha_vencimiento TEXT NOT NULL,
-                estado TEXT NOT NULL CHECK (estado IN ("Pagado", "Pendiente", "Vencido")),
-                id_atleta INTEGER NOT NULL,
-                FOREIGN KEY (id_atleta) REFERENCES atletas(id)
-            )'
-        );
-
-        $atletas = [
-            ['nombre' => 'Daniela Moya', 'email' => 'daniela.moya@ironcladbox.local'],
-            ['nombre' => 'Nicolas Perez', 'email' => 'nicolas.perez@ironcladbox.local'],
-            ['nombre' => 'Andrea Vega', 'email' => 'andrea.vega@ironcladbox.local'],
-            ['nombre' => 'Sebastian Flores', 'email' => 'sebastian.flores@ironcladbox.local'],
-        ];
-
-        $sentencia = $this->conexion->prepare(
-            'INSERT OR IGNORE INTO atletas (nombre, email, fecha_registro)
-             VALUES (:nombre, :email, :fecha_registro)'
-        );
-
-        foreach ($atletas as $atleta) {
-            $sentencia->execute([
-                'nombre' => $atleta['nombre'],
-                'email' => $atleta['email'],
-                'fecha_registro' => date('Y-m-d'),
-            ]);
-        }
+        $this->conexion = $conexion ?? Database::conectar();
     }
 
     public function crear(Membresia $membresia): Membresia
@@ -134,13 +64,25 @@ class MembresiaDAO
         return $this->actualizar($membresia);
     }
 
+    public function cancelar(int $idMembresia): ?Membresia
+    {
+        $sentencia = $this->conexion->prepare(
+            "UPDATE membresias
+                SET estado = 'Cancelada'
+              WHERE id = :id"
+        );
+        $sentencia->execute(['id' => $idMembresia]);
+
+        return $this->buscarPorId($idMembresia);
+    }
+
     public function marcarVencidas(string $fechaActual): void
     {
         $sentencia = $this->conexion->prepare(
-            'UPDATE membresias
-                SET estado = "Vencido"
-              WHERE estado = "Pagado"
-                AND fecha_vencimiento < :fecha_actual'
+            "UPDATE membresias
+                SET estado = 'Vencido'
+              WHERE estado = 'Pagado'
+                AND fecha_vencimiento < :fecha_actual"
         );
         $sentencia->execute(['fecha_actual' => $fechaActual]);
     }
@@ -175,7 +117,7 @@ class MembresiaDAO
             'SELECT
                 m.*,
                 a.nombre AS atleta_nombre,
-                a.email AS atleta_email
+                a.correo AS atleta_correo
              FROM membresias m
              INNER JOIN atletas a ON a.id = m.id_atleta
              ORDER BY m.fecha_vencimiento ASC, a.nombre ASC'
@@ -187,10 +129,24 @@ class MembresiaDAO
     public function listarAtletas(): array
     {
         $sentencia = $this->conexion->query(
-            'SELECT id, nombre, email, fecha_registro FROM atletas ORDER BY nombre ASC'
+            'SELECT id, nombre, correo, fecha_registro FROM atletas ORDER BY nombre ASC'
         );
 
         return $sentencia->fetchAll();
+    }
+
+    public function buscarAtletaPorCorreo(string $correo): ?array
+    {
+        $sentencia = $this->conexion->prepare(
+            'SELECT id, nombre, correo, fecha_registro
+               FROM atletas
+              WHERE lower(correo) = :correo
+              LIMIT 1'
+        );
+        $sentencia->execute(['correo' => strtolower(trim($correo))]);
+        $fila = $sentencia->fetch();
+
+        return $fila ?: null;
     }
 
     public function listarAtletasConMembresia(): array
@@ -199,7 +155,7 @@ class MembresiaDAO
             'SELECT
                 a.id,
                 a.nombre,
-                a.email,
+                a.correo,
                 a.fecha_registro,
                 m.id AS membresia_id,
                 m.tipo,
@@ -236,7 +192,7 @@ class MembresiaDAO
         $membresia['atleta'] = [
             'id' => (int) $fila['id_atleta'],
             'nombre' => $fila['atleta_nombre'],
-            'email' => $fila['atleta_email'],
+            'correo' => $fila['atleta_correo'],
         ];
 
         return $membresia;
@@ -259,7 +215,7 @@ class MembresiaDAO
         return [
             'id' => (int) $fila['id'],
             'nombre' => $fila['nombre'],
-            'email' => $fila['email'],
+            'correo' => $fila['correo'],
             'fechaRegistro' => $fila['fecha_registro'],
             'membresia' => $membresia,
         ];

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Reporte.php';
+require_once __DIR__ . '/../includes/Database.php';
 
 class ReporteDAO
 {
@@ -8,101 +9,7 @@ class ReporteDAO
 
     public function __construct(?PDO $conexion = null)
     {
-        $this->conexion = $conexion ?? $this->crearConexionPdoSimulada();
-        $this->inicializarEsquemaSimulado();
-    }
-
-    private function crearConexionPdoSimulada(): PDO
-    {
-        $directorioDatos = __DIR__ . '/../data';
-        if (!is_dir($directorioDatos)) {
-            mkdir($directorioDatos, 0777, true);
-        }
-
-        $rutaBase = $directorioDatos . '/ironclad_box.sqlite';
-        $pdo = new PDO('sqlite:' . $rutaBase);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec('PRAGMA foreign_keys = ON;');
-
-        return $pdo;
-
-        /*
-        Para MySQL real:
-        $dsn = 'mysql:host=localhost;dbname=ironclad_box;charset=utf8mb4';
-        return new PDO($dsn, 'usuario', 'password', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        */
-    }
-
-    private function inicializarEsquemaSimulado(): void
-    {
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS atletas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                fecha_registro TEXT NOT NULL
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS entrenadores (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                disponible INTEGER NOT NULL DEFAULT 1
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS clases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                dia TEXT NOT NULL,
-                hora TEXT NOT NULL,
-                duracion INTEGER NOT NULL,
-                cupo_maximo INTEGER NOT NULL,
-                cupos_disponibles INTEGER NOT NULL,
-                entrenador_id INTEGER NOT NULL,
-                FOREIGN KEY (entrenador_id) REFERENCES entrenadores(id)
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS membresias (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tipo TEXT NOT NULL,
-                precio REAL NOT NULL,
-                fecha_inicio TEXT NOT NULL,
-                fecha_vencimiento TEXT NOT NULL,
-                estado TEXT NOT NULL CHECK (estado IN ("Pagado", "Pendiente", "Vencido")),
-                id_atleta INTEGER NOT NULL,
-                FOREIGN KEY (id_atleta) REFERENCES atletas(id)
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS reservas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                id_atleta INTEGER NOT NULL,
-                id_clase INTEGER NOT NULL,
-                fecha_reserva TEXT NOT NULL,
-                estado TEXT NOT NULL CHECK (estado IN ("Confirmada", "Cancelada")),
-                FOREIGN KEY (id_atleta) REFERENCES atletas(id),
-                FOREIGN KEY (id_clase) REFERENCES clases(id)
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS reportes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tipo TEXT NOT NULL,
-                datos TEXT NOT NULL,
-                fecha_generacion TEXT NOT NULL
-            )'
-        );
+        $this->conexion = $conexion ?? Database::conectar();
     }
 
     public function consultarFinanzas(string $fechaInicio, string $fechaFin): array
@@ -136,12 +43,12 @@ class ReporteDAO
     public function consultarAsistencia(string $fechaInicio, string $fechaFin): array
     {
         $sentencia = $this->conexion->prepare(
-            'SELECT
+            "SELECT
                 c.dia AS fecha,
                 c.hora,
                 e.nombre AS entrenador,
-                SUM(CASE WHEN r.estado = "Confirmada" THEN 1 ELSE 0 END) AS reservas_confirmadas,
-                SUM(CASE WHEN r.estado = "Cancelada" THEN 1 ELSE 0 END) AS reservas_canceladas,
+                SUM(CASE WHEN r.estado = 'Confirmada' THEN 1 ELSE 0 END) AS reservas_confirmadas,
+                SUM(CASE WHEN r.estado = 'Cancelada' THEN 1 ELSE 0 END) AS reservas_canceladas,
                 c.cupo_maximo,
                 c.cupos_disponibles
              FROM clases c
@@ -149,7 +56,7 @@ class ReporteDAO
              LEFT JOIN reservas r ON r.id_clase = c.id
              WHERE c.dia BETWEEN :fecha_inicio AND :fecha_fin
              GROUP BY c.id, c.dia, c.hora, e.nombre, c.cupo_maximo, c.cupos_disponibles
-             ORDER BY c.dia ASC, c.hora ASC'
+             ORDER BY c.dia ASC, c.hora ASC"
         );
         $sentencia->execute([
             'fecha_inicio' => $fechaInicio,

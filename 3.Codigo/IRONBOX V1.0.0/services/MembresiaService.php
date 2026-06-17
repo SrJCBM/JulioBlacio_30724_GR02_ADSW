@@ -125,6 +125,31 @@ class MembresiaService
         return $this->membresiaDAO->actualizarTrasPago($membresiaPagada);
     }
 
+    public function cancelar(array $datos): Membresia
+    {
+        $idMembresia = (int) ($datos['id'] ?? $datos['membresiaId'] ?? 0);
+        $idAtleta = (int) ($datos['idAtleta'] ?? $datos['id_atleta'] ?? 0);
+
+        if ($idMembresia <= 0 && $idAtleta > 0) {
+            $membresiaActual = $this->membresiaDAO->buscarActualPorAtleta($idAtleta);
+        } elseif ($idMembresia > 0) {
+            $membresiaActual = $this->membresiaDAO->buscarPorId($idMembresia);
+        } else {
+            throw new InvalidArgumentException('Debe indicar la membresia o el atleta para cancelar.');
+        }
+
+        if (!$membresiaActual) {
+            throw new DomainException('No existe una membresia para cancelar.');
+        }
+
+        $membresiaCancelada = $this->membresiaDAO->cancelar((int) $membresiaActual->getId());
+        if (!$membresiaCancelada) {
+            throw new DomainException('No se pudo cancelar la membresia.');
+        }
+
+        return $membresiaCancelada;
+    }
+
     private function actualizarVencidas(): void
     {
         $this->membresiaDAO->marcarVencidas(date('Y-m-d'));

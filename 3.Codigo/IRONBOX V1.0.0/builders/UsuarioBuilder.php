@@ -9,7 +9,8 @@ class UsuarioBuilder
 
     private ?int $id = null;
     private ?string $nombre = null;
-    private ?string $email = null;
+    private ?string $cedula = null;
+    private ?string $correo = null;
     private ?string $contrasena = null;
     private ?string $rol = null;
     private ?string $estado = null;
@@ -36,14 +37,25 @@ class UsuarioBuilder
         return $this;
     }
 
-    public function configurarEmail(string $email): self
+    public function configurarCedula(string $cedula): self
     {
-        $email = strtolower(trim($email));
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException('El email no tiene un formato valido.');
+        $cedula = preg_replace('/\D+/', '', $cedula);
+        if (!$this->cedulaEcuatorianaValida($cedula)) {
+            throw new InvalidArgumentException('La cedula ecuatoriana no es valida.');
         }
 
-        $this->email = $email;
+        $this->cedula = $cedula;
+        return $this;
+    }
+
+    public function configurarCorreo(string $correo): self
+    {
+        $correo = strtolower(trim($correo));
+        if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('El correo no tiene un formato valido.');
+        }
+
+        $this->correo = $correo;
         return $this;
     }
 
@@ -109,7 +121,8 @@ class UsuarioBuilder
         $camposFaltantes = [];
         foreach ([
             'nombre' => $this->nombre,
-            'email' => $this->email,
+            'cedula' => $this->cedula,
+            'correo' => $this->correo,
             'contrasena' => $this->contrasena,
             'rol' => $this->rol,
             'estado' => $this->estado,
@@ -127,11 +140,40 @@ class UsuarioBuilder
         return new Usuario(
             $this->id,
             $this->nombre,
-            $this->email,
+            $this->cedula,
+            $this->correo,
             $this->contrasena,
             $this->rol,
             $this->estado,
             $this->fechaRegistro
         );
+    }
+
+    private function cedulaEcuatorianaValida(string $cedula): bool
+    {
+        if (!preg_match('/^\d{10}$/', $cedula)) {
+            return false;
+        }
+
+        $provincia = (int) substr($cedula, 0, 2);
+        $tercerDigito = (int) $cedula[2];
+        if ($provincia < 1 || $provincia > 24 || $tercerDigito > 5) {
+            return false;
+        }
+
+        $suma = 0;
+        for ($i = 0; $i < 9; $i++) {
+            $digito = (int) $cedula[$i];
+            if ($i % 2 === 0) {
+                $digito *= 2;
+                if ($digito > 9) {
+                    $digito -= 9;
+                }
+            }
+            $suma += $digito;
+        }
+
+        $verificador = (10 - ($suma % 10)) % 10;
+        return $verificador === (int) $cedula[9];
     }
 }

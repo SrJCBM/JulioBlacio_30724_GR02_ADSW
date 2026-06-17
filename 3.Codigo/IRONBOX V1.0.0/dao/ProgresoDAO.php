@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/RegistroProgreso.php';
+require_once __DIR__ . '/../includes/Database.php';
 
 class ProgresoDAO
 {
@@ -8,79 +9,7 @@ class ProgresoDAO
 
     public function __construct(?PDO $conexion = null)
     {
-        $this->conexion = $conexion ?? $this->crearConexionPdoSimulada();
-        $this->inicializarEsquemaSimulado();
-    }
-
-    private function crearConexionPdoSimulada(): PDO
-    {
-        $directorioDatos = __DIR__ . '/../data';
-        if (!is_dir($directorioDatos)) {
-            mkdir($directorioDatos, 0777, true);
-        }
-
-        $rutaBase = $directorioDatos . '/ironclad_box.sqlite';
-        $pdo = new PDO('sqlite:' . $rutaBase);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec('PRAGMA foreign_keys = ON;');
-
-        return $pdo;
-
-        /*
-        Para MySQL real:
-        $dsn = 'mysql:host=localhost;dbname=ironclad_box;charset=utf8mb4';
-        return new PDO($dsn, 'usuario', 'password', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        */
-    }
-
-    private function inicializarEsquemaSimulado(): void
-    {
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS atletas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                fecha_registro TEXT NOT NULL
-            )'
-        );
-
-        $this->conexion->exec(
-            'CREATE TABLE IF NOT EXISTS progreso_atletas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fecha TEXT NOT NULL,
-                tiempo REAL NULL,
-                repeticiones INTEGER NULL,
-                peso REAL NULL,
-                puntuacion REAL NOT NULL DEFAULT 0,
-                notas TEXT NOT NULL DEFAULT "",
-                id_atleta INTEGER NOT NULL,
-                FOREIGN KEY (id_atleta) REFERENCES atletas(id)
-            )'
-        );
-
-        $atletas = [
-            ['nombre' => 'Daniela Moya', 'email' => 'daniela.moya@ironcladbox.local'],
-            ['nombre' => 'Nicolas Perez', 'email' => 'nicolas.perez@ironcladbox.local'],
-            ['nombre' => 'Andrea Vega', 'email' => 'andrea.vega@ironcladbox.local'],
-            ['nombre' => 'Sebastian Flores', 'email' => 'sebastian.flores@ironcladbox.local'],
-        ];
-
-        $sentencia = $this->conexion->prepare(
-            'INSERT OR IGNORE INTO atletas (nombre, email, fecha_registro)
-             VALUES (:nombre, :email, :fecha_registro)'
-        );
-
-        foreach ($atletas as $atleta) {
-            $sentencia->execute([
-                'nombre' => $atleta['nombre'],
-                'email' => $atleta['email'],
-                'fecha_registro' => date('Y-m-d'),
-            ]);
-        }
+        $this->conexion = $conexion ?? Database::conectar();
     }
 
     public function crear(RegistroProgreso $registro): RegistroProgreso
@@ -120,7 +49,7 @@ class ProgresoDAO
             'SELECT
                 p.*,
                 a.nombre AS atleta_nombre,
-                a.email AS atleta_email
+                a.correo AS atleta_correo
              FROM progreso_atletas p
              INNER JOIN atletas a ON a.id = p.id_atleta
              WHERE p.id_atleta = :id_atleta
@@ -134,7 +63,7 @@ class ProgresoDAO
     public function listarAtletas(): array
     {
         $sentencia = $this->conexion->query(
-            'SELECT id, nombre, email, fecha_registro FROM atletas ORDER BY nombre ASC'
+            'SELECT id, nombre, correo, fecha_registro FROM atletas ORDER BY nombre ASC'
         );
 
         return $sentencia->fetchAll();
@@ -154,7 +83,7 @@ class ProgresoDAO
         $registro['atleta'] = [
             'id' => (int) $fila['id_atleta'],
             'nombre' => $fila['atleta_nombre'],
-            'email' => $fila['atleta_email'],
+            'correo' => $fila['atleta_correo'],
         ];
 
         return $registro;

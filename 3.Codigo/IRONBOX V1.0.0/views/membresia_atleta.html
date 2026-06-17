@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>IronClad Box | Mi membresia</title>
+    <link rel="stylesheet" href="../assets/css/nav.css">
     <style>
         :root {
             --bg: #f4f6f8;
@@ -159,6 +160,11 @@
             background: #fff0ef;
         }
 
+        .tag.Cancelada {
+            color: var(--muted);
+            background: #eef0f3;
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -193,6 +199,15 @@
             background: #fff;
             color: var(--ink);
             border-color: #c8d0da;
+        }
+
+        .danger {
+            background: #b42318;
+            color: #fff;
+        }
+
+        .danger:hover {
+            background: #8f1d14;
         }
 
         .status {
@@ -237,6 +252,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="../assets/css/app.css">
 </head>
 <body>
     <header>
@@ -310,10 +326,12 @@
                 </div>
 
                 <button type="submit" class="primary" id="submitButton">Confirmar pago simulado</button>
+                <button type="button" class="danger" id="cancelMembershipButton">Cancelar membresia</button>
                 <button type="button" class="secondary" id="refreshButton">Actualizar estado</button>
             </form>
         </section>
     </main>
+    <script src="../assets/js/nav.js"></script>
 
     <script src="../assets/js/membresia_atleta.js"></script>
 </body>
