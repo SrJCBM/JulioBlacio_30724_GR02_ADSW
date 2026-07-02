@@ -40,8 +40,14 @@ class ClaseBuilder
             throw new InvalidArgumentException('La hora debe tener formato HH:MM.');
         }
 
+        $horaCorta = substr($horaNormalizada, 0, 5);
+        $momento = DateTime::createFromFormat('Y-m-d H:i', $dia . ' ' . $horaCorta);
+        if (!$momento || $momento < new DateTime('now')) {
+            throw new InvalidArgumentException('La clase no puede programarse en una fecha u hora pasada.');
+        }
+
         $this->dia = $dia;
-        $this->hora = substr($horaNormalizada, 0, 5);
+        $this->hora = $horaCorta;
         return $this;
     }
 

@@ -68,6 +68,17 @@ class ReporteService
         $fechaFin = $filtros['fechaFin'] ?? $filtros['fecha_fin'] ?? date('Y-m-d');
         $fechaInicio = $filtros['fechaInicio'] ?? $filtros['fecha_inicio'] ?? date('Y-m-01');
 
+        foreach (['fechaInicio' => $fechaInicio, 'fechaFin' => $fechaFin] as $campo => $valor) {
+            $fecha = DateTime::createFromFormat('Y-m-d', (string) $valor);
+            if (!$fecha || $fecha->format('Y-m-d') !== $valor) {
+                throw new InvalidArgumentException('El campo ' . $campo . ' debe tener formato YYYY-MM-DD.');
+            }
+        }
+
+        if ($fechaInicio > $fechaFin) {
+            throw new InvalidArgumentException('La fecha de inicio no puede ser posterior a la fecha fin.');
+        }
+
         return [
             'tipo' => $filtros['tipo'] ?? 'Finanzas',
             'fechaInicio' => $fechaInicio,

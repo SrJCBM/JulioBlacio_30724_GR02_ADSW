@@ -4,13 +4,12 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
 require_once __DIR__ . '/../includes/Auth.php';
+require_once __DIR__ . '/../includes/Cors.php';
 require_once __DIR__ . '/../services/UsuarioService.php';
 require_once __DIR__ . '/../dao/MembresiaDAO.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+aplicarCors();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -25,10 +24,20 @@ try {
         case 'login':
             asegurarPostAuth();
             $service = new UsuarioService();
-            $usuario = $service->autenticar(
-                (string) ($payload['correo'] ?? $payload['email'] ?? ''),
-                (string) ($payload['contrasena'] ?? $payload['contraseña'] ?? '')
-            );
+            $correo = (string) ($payload['correo'] ?? $payload['email'] ?? '');
+            verificarThrottleLogin($correo);
+
+            try {
+                $usuario = $service->autenticar(
+                    $correo,
+                    (string) ($payload['contrasena'] ?? $payload['contraseña'] ?? '')
+                );
+            } catch (DomainException $error) {
+                registrarFalloLogin($correo);
+                throw $error;
+            }
+
+            limpiarThrottleLogin($correo);
 
             $usuarioSesion = $usuario->toArray();
             $idAtleta = resolverIdAtletaSesion($usuarioSesion);
@@ -53,6 +62,8 @@ try {
         default:
             responderAuth(['success' => false, 'message' => 'Accion no soportada.'], 404);
     }
+} catch (AuthException $error) {
+    responderAuth(['success' => false, 'message' => $error->getMessage()], $error->getEstadoHttp());
 } catch (InvalidArgumentException | DomainException $error) {
     responderAuth(['success' => false, 'message' => $error->getMessage()], 422);
 } catch (Throwable $error) {
@@ -96,4 +107,52 @@ function responderAuth(array $respuesta, int $estadoHttp = 200): void
     http_response_code($estadoHttp);
     echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+function verificarThrottleLogin(string $correo): void
+{
+    authIniciarSesion();
+    $clave = claveThrottleLogin($correo);
+    $intento = $_SESSION['login_intentos'][$clave] ?? null;
+
+    if (!is_array($intento) || time() - (int) ($intento['inicio'] ?? 0) > 900) {
+        unset($_SESSION['login_intentos'][$clave]);
+        return;
+    }
+
+    if ((int) ($intento['fallos'] ?? 0) >= 5) {
+        throw new AuthException('Demasiados intentos fallidos. Intente nuevamente en unos minutos.', 429);
+    }
+}
+
+function registrarFalloLogin(string $correo): void
+{
+    authIniciarSesion();
+    $clave = claveThrottleLogin($correo);
+    $intento = $_SESSION['login_intentos'][$clave] ?? ['fallos' => 0, 'inicio' => time()];
+
+    if (time() - (int) ($intento['inicio'] ?? 0) > 900) {
+        $intento = ['fallos' => 0, 'inicio' => time()];
+    }
+
+    $intento['fallos'] = (int) ($intento['fallos'] ?? 0) + 1;
+    $_SESSION['login_intentos'][$clave] = $intento;
+
+    if ($intento['fallos'] > 1) {
+        sleep(min($intento['fallos'] - 1, 5));
+    }
+}
+
+function limpiarThrottleLogin(string $correo): void
+{
+    authIniciarSesion();
+    unset($_SESSION['login_intentos'][claveThrottleLogin($correo)]);
+}
+
+function claveThrottleLogin(string $correo): string
+{
+    $correo = strtolower(trim($correo));
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'sin-ip';
+
+    return hash('sha256', $correo . '|' . $ip);
 }

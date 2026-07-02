@@ -1,15 +1,15 @@
 <?php
 
 require_once __DIR__ . '/../services/ProgresoService.php';
+require_once __DIR__ . '/../includes/Auth.php';
+require_once __DIR__ . '/../includes/Cors.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+aplicarCors();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -21,6 +21,8 @@ $payload = obtenerPayloadProgreso();
 $accion = $_GET['action'] ?? $payload['action'] ?? 'atletas';
 
 try {
+    authRequerirSesion();
+
     switch ($accion) {
         case 'atletas':
             responderProgreso(['success' => true, 'data' => $service->listarAtletas()]);
@@ -52,6 +54,8 @@ try {
         default:
             responderProgreso(['success' => false, 'message' => 'Accion no soportada.'], 404);
     }
+} catch (AuthException $error) {
+    responderProgreso(['success' => false, 'message' => $error->getMessage()], $error->getEstadoHttp());
 } catch (InvalidArgumentException | DomainException $error) {
     responderProgreso(['success' => false, 'message' => $error->getMessage()], 422);
 } catch (Throwable $error) {
@@ -79,6 +83,11 @@ function asegurarPostProgreso(): void
 
 function obtenerIdAtletaProgreso(array $payload): int
 {
+    $usuario = authUsuarioActual();
+    if (($usuario['rol'] ?? '') === 'Atleta') {
+        return (int) ($_SESSION['id_atleta'] ?? 0);
+    }
+
     return (int) (
         $_GET['idAtleta']
         ?? $_GET['id_atleta']

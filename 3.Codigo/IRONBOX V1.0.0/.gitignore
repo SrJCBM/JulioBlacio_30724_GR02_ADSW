@@ -1,0 +1,4 @@
+.env
+*.sqlite
+ca.pem
+/data/*.sqlite

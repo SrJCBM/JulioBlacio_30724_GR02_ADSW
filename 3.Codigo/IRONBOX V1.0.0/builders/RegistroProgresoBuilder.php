@@ -41,6 +41,10 @@ class RegistroProgresoBuilder
             throw new InvalidArgumentException('La fecha debe tener formato YYYY-MM-DD.');
         }
 
+        if ($fecha > date('Y-m-d')) {
+            throw new InvalidArgumentException('La fecha del registro no puede ser futura.');
+        }
+
         $this->fecha = $fecha;
         return $this;
     }
@@ -53,6 +57,10 @@ class RegistroProgresoBuilder
 
         if ($tiempo <= 0) {
             throw new InvalidArgumentException('El tiempo debe ser mayor a cero.');
+        }
+
+        if ($tiempo > 86400) {
+            throw new InvalidArgumentException('El tiempo no puede superar 86400 segundos.');
         }
 
         $this->tiempo = round($tiempo, 2);
@@ -69,6 +77,10 @@ class RegistroProgresoBuilder
             throw new InvalidArgumentException('Las repeticiones deben ser mayores a cero.');
         }
 
+        if ($repeticiones > 100000) {
+            throw new InvalidArgumentException('Las repeticiones no pueden superar 100000.');
+        }
+
         $this->repeticiones = $repeticiones;
         return $this;
     }
@@ -81,6 +93,10 @@ class RegistroProgresoBuilder
 
         if ($peso <= 0) {
             throw new InvalidArgumentException('El peso debe ser mayor a cero.');
+        }
+
+        if ($peso > 1000) {
+            throw new InvalidArgumentException('El peso no puede superar 1000.');
         }
 
         $this->peso = round($peso, 2);
@@ -97,13 +113,22 @@ class RegistroProgresoBuilder
             throw new InvalidArgumentException('La puntuacion no puede ser negativa.');
         }
 
+        if ($puntuacion > 1000000) {
+            throw new InvalidArgumentException('La puntuacion no puede superar 1000000.');
+        }
+
         $this->puntuacion = round($puntuacion, 2);
         return $this;
     }
 
     public function agregarNotas(?string $notas): self
     {
-        $this->notas = trim((string) $notas);
+        $notas = trim((string) $notas);
+        if (strlen($notas) > 1000) {
+            throw new InvalidArgumentException('Las notas no pueden superar 1000 caracteres.');
+        }
+
+        $this->notas = $notas;
         return $this;
     }
 

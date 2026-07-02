@@ -26,6 +26,9 @@
     clearButton.addEventListener('click', limpiarCampos);
 
     async function iniciar() {
+        if (fechaInput) {
+            fechaInput.max = new Date().toISOString().slice(0, 10);
+        }
         fechaInput.value = obtenerFechaActual();
         await cargarAtletas();
     }

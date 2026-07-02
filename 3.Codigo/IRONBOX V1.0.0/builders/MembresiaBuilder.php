@@ -42,8 +42,16 @@ class MembresiaBuilder
             throw new InvalidArgumentException('El tipo de membresia es obligatorio.');
         }
 
+        if (strlen($tipo) > 80) {
+            throw new InvalidArgumentException('El tipo de membresia no puede superar 80 caracteres.');
+        }
+
         if ($precio <= 0) {
             throw new InvalidArgumentException('El precio de la membresia debe ser mayor a cero.');
+        }
+
+        if ($precio > 100000) {
+            throw new InvalidArgumentException('El precio de la membresia no puede superar 100000.');
         }
 
         $this->tipo = $tipo;

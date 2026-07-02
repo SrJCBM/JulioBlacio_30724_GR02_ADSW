@@ -33,6 +33,10 @@ class UsuarioBuilder
             throw new InvalidArgumentException('El nombre debe tener al menos 3 caracteres.');
         }
 
+        if (strlen($nombre) > 120) {
+            throw new InvalidArgumentException('El nombre no puede superar 120 caracteres.');
+        }
+
         $this->nombre = $nombre;
         return $this;
     }
@@ -61,8 +65,8 @@ class UsuarioBuilder
 
     public function definirContrasena(string $contrasena): self
     {
-        if (strlen($contrasena) < 6) {
-            throw new InvalidArgumentException('La contrasena debe tener al menos 6 caracteres.');
+        if (strlen($contrasena) < 8) {
+            throw new InvalidArgumentException('La contrasena debe tener al menos 8 caracteres.');
         }
 
         $this->contrasena = password_hash($contrasena, PASSWORD_DEFAULT);

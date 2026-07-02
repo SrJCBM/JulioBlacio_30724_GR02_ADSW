@@ -19,11 +19,35 @@
     form.addEventListener('submit', generarReporte);
     csvButton.addEventListener('click', exportarCsv);
     pdfButton.addEventListener('click', exportarPdf);
+    if (fechaInicio) {
+        fechaInicio.addEventListener('change', actualizarLimitesFechas);
+    }
+    if (fechaFin) {
+        fechaFin.addEventListener('change', actualizarLimitesFechas);
+    }
 
     function iniciar() {
         const hoy = new Date();
-        fechaFin.value = formatearFechaInput(hoy);
-        fechaInicio.value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+        if (fechaFin) {
+            fechaFin.value = formatearFechaInput(hoy);
+        }
+        if (fechaInicio) {
+            fechaInicio.value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+        }
+        actualizarLimitesFechas();
+    }
+
+    function actualizarLimitesFechas() {
+        const hoy = new Date().toISOString().slice(0, 10);
+
+        if (fechaInicio) {
+            fechaInicio.max = fechaFin && fechaFin.value && fechaFin.value < hoy ? fechaFin.value : hoy;
+        }
+
+        if (fechaFin) {
+            fechaFin.min = fechaInicio ? fechaInicio.value : '';
+            fechaFin.max = hoy;
+        }
     }
 
     async function generarReporte(evento) {

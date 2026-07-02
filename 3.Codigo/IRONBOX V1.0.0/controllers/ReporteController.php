@@ -2,6 +2,14 @@
 
 require_once __DIR__ . '/../services/ReporteService.php';
 require_once __DIR__ . '/../includes/Auth.php';
+require_once __DIR__ . '/../includes/Cors.php';
+
+aplicarCors();
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
 
 $service = new ReporteService();
 $payload = obtenerPayloadReporte();

@@ -2,11 +2,10 @@
 
 require_once __DIR__ . '/../services/ClaseService.php';
 require_once __DIR__ . '/../includes/Auth.php';
+require_once __DIR__ . '/../includes/Cors.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+aplicarCors();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -135,6 +134,11 @@ function obtenerId(array $payload): int
 
 function obtenerIdAtleta(array $payload): int
 {
+    $usuario = authUsuarioActual();
+    if (($usuario['rol'] ?? '') === 'Atleta') {
+        return (int) ($_SESSION['id_atleta'] ?? 0);
+    }
+
     return (int) (
         $_GET['idAtleta']
         ?? $payload['idAtleta']
