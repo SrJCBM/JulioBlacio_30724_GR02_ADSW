@@ -2,10 +2,11 @@
     position: sticky;
     top: 0;
     z-index: 20;
-    background: #15191f;
-    color: #fff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 6px 18px rgba(15, 20, 25, 0.18);
+    background: #101216;
+    color: #eceae3;
+    border-bottom: 1px solid rgba(232, 84, 42, 0.35);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+    font-family: "Inter", system-ui, Arial, sans-serif;
 }
 
 [data-roles][hidden],
@@ -27,9 +28,12 @@ body:not([data-rol]) [data-roles] {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    color: #fff;
+    color: #eceae3;
     text-decoration: none;
-    font-weight: 700;
+    font-family: "Oswald", sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     white-space: nowrap;
 }
 
@@ -39,9 +43,11 @@ body:not([data-rol]) [data-roles] {
     border-radius: 8px;
     display: inline-grid;
     place-items: center;
-    background: #b8232f;
-    color: #fff;
-    font-size: 0.82rem;
+    background: linear-gradient(180deg, #ff6a3d, #e8542a);
+    color: #16181d;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    font-size: 0.78rem;
     line-height: 1;
 }
 
@@ -61,39 +67,42 @@ body:not([data-rol]) [data-roles] {
 }
 
 .app-nav-role {
-    color: #aeb7c2;
-    font-size: 0.76rem;
+    color: #8a929e;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.12em;
     margin-right: 2px;
 }
 
 .app-nav-link {
     appearance: none;
-    font-family: inherit;
-    color: #f5f7fa;
+    font-family: "Inter", system-ui, sans-serif;
+    color: #cfd3da;
     text-decoration: none;
     background: transparent;
     font-size: 0.9rem;
     border: 1px solid transparent;
     border-radius: 8px;
-    padding: 7px 9px;
+    padding: 7px 10px;
     line-height: 1.15;
     cursor: pointer;
 }
 
 .app-nav-link:hover,
 .app-nav-link:focus {
-    border-color: rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(232, 84, 42, 0.5);
+    background: rgba(232, 84, 42, 0.1);
+    color: #eceae3;
     outline: none;
 }
 
 .app-nav-link.is-active {
-    background: #fff;
-    color: #20242a;
-    border-color: #fff;
+    background: linear-gradient(180deg, #ff6a3d, #e8542a);
+    color: #16181d;
+    border-color: transparent;
+    font-weight: 600;
 }
 
 @media (max-width: 860px) {

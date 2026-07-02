@@ -6,16 +6,20 @@
     const permissions = {
         Administrador: [
             { label: 'Usuarios', href: 'gestion_usuarios.html' },
-            { label: 'Clases', href: 'gestion_clases.html' },
             { label: 'Membresias', href: 'gestion_membresias.html' },
+            { label: 'Clases', href: 'gestion_clases.html' },
             { label: 'Reportes', href: 'reportes_admin.html' },
         ],
         Entrenador: [
             { label: 'Clases', href: 'gestion_clases.html' },
+            { label: 'Progreso', href: 'seguimiento_progreso.html' },
+            { label: 'Comunicacion', href: 'comunicacion_entrenador.html' },
         ],
         Atleta: [
             { label: 'Clases', href: 'reservas_atleta.html' },
+            { label: 'Mi progreso', href: 'progreso_atleta.html' },
             { label: 'Mi membresia', href: 'membresia_atleta.html' },
+            { label: 'Mensajes', href: 'bandeja_atleta.html' },
         ],
     };
 

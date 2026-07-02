@@ -1,165 +1,286 @@
-html {
-    scrollbar-gutter: stable;
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+
+/* ============================================================
+   IronClad Box — sistema de diseño "hierro / tiza / brasa".
+   Esta hoja se carga al final en cada vista, por lo que sus
+   tokens y reglas re-tematizan las pantallas heredadas sin
+   tocar su HTML. La firma (pizarra) vive en el login; aquí el
+   interior es oscuro, atlético y disciplinado.
+   ============================================================ */
+
+:root {
+    --bg: #16181d;
+    --bg-2: #1a1d23;
+    --panel: #1d2027;
+    --panel-2: #22262e;
+    --steel: #2b313a;
+    --ink: #eceae3;
+    --muted: #8a929e;
+    --line: rgba(236, 234, 227, 0.12);
+    --brand: #e8542a;
+    --brand-dark: #ff6a3d;
+    --focus: #e8542a;
+    --ok: #7bc67e;
+    --warn: #e0a54b;
+    --danger: #ff6b5e;
 }
+
+html { scrollbar-gutter: stable; }
 
 body {
     background:
-        radial-gradient(circle at top left, rgba(184, 35, 47, 0.06), transparent 320px),
-        var(--bg, #f4f6f8) !important;
+        radial-gradient(1000px 480px at 8% -10%, rgba(232, 84, 42, 0.08), transparent 60%),
+        var(--bg) !important;
+    color: var(--ink) !important;
+    font-family: "Inter", system-ui, Arial, sans-serif !important;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
 }
 
+/* ---------- Cabecera de página ---------- */
 header {
-    box-shadow: 0 10px 24px rgba(18, 24, 31, 0.12);
+    background: linear-gradient(180deg, var(--panel-2), var(--bg-2)) !important;
+    color: var(--ink) !important;
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.8);
 }
 
-main {
-    padding-bottom: 28px;
-}
-
-.panel {
-    overflow: hidden;
-    border-color: rgba(155, 168, 182, 0.38) !important;
-    box-shadow: 0 10px 26px rgba(31, 37, 44, 0.07) !important;
-}
-
-.panel-header {
-    background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
-}
-
-.panel-header h2 {
-    color: var(--ink, #1f252c);
-}
-
-input,
-select,
-textarea {
-    min-height: 40px;
-    border: 1px solid var(--line, #dce2e8);
-    border-radius: 8px;
-    background: #fff;
-    color: var(--ink, #1f252c);
-    transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
-}
-
-textarea {
-    min-height: 96px;
-    resize: vertical;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-    border-color: var(--focus, #1f6feb) !important;
-    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.14);
-    outline: none;
-}
-
-button,
-.primary,
-.secondary,
-.danger,
-.module-link {
-    transition: transform 0.14s ease, border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
-}
-
-button:hover,
-.primary:hover,
-.secondary:hover,
-.danger:hover,
-.module-link:hover {
-    transform: translateY(-1px);
-}
-
-button:active,
-.primary:active,
-.secondary:active,
-.danger:active,
-.module-link:active {
-    transform: translateY(0);
-}
-
-.primary {
-    box-shadow: 0 8px 16px rgba(184, 35, 47, 0.18);
-}
-
-.secondary {
-    background: #fff !important;
-}
-
-.status:not(:empty),
-.empty {
-    border-radius: 8px;
-}
-
-.table-wrap {
-    border-radius: 8px;
-    border: 1px solid var(--line, #dce2e8);
-    overflow: auto;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th {
-    background: #f8fafc;
-    color: var(--ink, #1f252c);
-    font-size: 0.82rem;
-    text-transform: uppercase;
+header h1,
+header h1 strong {
+    font-family: "Oswald", sans-serif !important;
+    font-weight: 600 !important;
     letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink) !important;
 }
 
-td,
-th {
-    vertical-align: top;
-}
+header p { color: var(--muted) !important; }
 
-tbody tr:hover {
-    background: #fbfcfd;
-}
+main { padding-bottom: 28px; }
 
+/* ---------- Paneles / tarjetas ---------- */
+.panel,
+.role-card,
 .chart-wrap,
 .metrics,
 .athlete-box,
 .summary,
 .message-list {
-    border-radius: 8px;
+    background: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.85) !important;
+    overflow: hidden;
 }
 
+.panel-header {
+    background: linear-gradient(180deg, var(--panel-2), var(--panel)) !important;
+    border-bottom: 1px solid var(--line) !important;
+}
+
+.panel-header h2,
+h2, h3 {
+    font-family: "Oswald", sans-serif !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink) !important;
+}
+
+.pattern-card h3,
+.module-link:hover,
+.module-link:focus { color: var(--brand-dark) !important; }
+
+/* ---------- Formularios ---------- */
+label {
+    color: var(--muted) !important;
+    font-family: "JetBrains Mono", monospace !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+input,
+select,
+textarea {
+    min-height: 42px;
+    border: 1px solid var(--steel) !important;
+    border-radius: 9px !important;
+    background: var(--bg) !important;
+    color: var(--ink) !important;
+    font-family: "Inter", sans-serif !important;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+textarea { min-height: 96px; resize: vertical; }
+
+input::placeholder,
+textarea::placeholder { color: #545b66; }
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--focus) !important;
+    box-shadow: 0 0 0 3px rgba(232, 84, 42, 0.22) !important;
+    outline: none !important;
+}
+
+/* selects y date/time pickers legibles en oscuro */
+select option { background: var(--panel); color: var(--ink); }
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+
+/* ---------- Botones ---------- */
+button,
+.primary,
+.secondary,
+.danger,
+.module-link {
+    font-family: "Oswald", sans-serif !important;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    transition: transform 0.14s ease, border-color 0.16s ease,
+        background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.primary {
+    background: linear-gradient(180deg, var(--brand-dark), var(--brand)) !important;
+    color: #16181d !important;
+    border: 0 !important;
+    text-transform: uppercase;
+    box-shadow: 0 10px 22px -10px rgba(232, 84, 42, 0.7) !important;
+}
+.primary:hover { filter: brightness(1.06); }
+
+.secondary {
+    background: var(--panel-2) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--steel) !important;
+    text-transform: uppercase;
+}
+.secondary:hover { background: var(--steel) !important; }
+
+.danger {
+    background: transparent !important;
+    color: var(--danger) !important;
+    border: 1px solid rgba(255, 107, 94, 0.45) !important;
+    text-transform: uppercase;
+}
+.danger:hover { background: rgba(255, 107, 94, 0.12) !important; }
+
+button:hover,
+.primary:hover,
+.secondary:hover,
+.danger:hover,
+.module-link:hover { transform: translateY(-1px); }
+
+button:active,
+.primary:active,
+.secondary:active,
+.danger:active { transform: translateY(0); }
+
+button:focus-visible,
+a:focus-visible,
+.module-link:focus-visible {
+    outline: 3px solid rgba(255, 106, 61, 0.6);
+    outline-offset: 2px;
+}
+
+/* ---------- Estados / mensajes ---------- */
+.status.ok {
+    color: var(--ok) !important;
+    background: rgba(123, 198, 126, 0.1) !important;
+    border: 1px solid rgba(123, 198, 126, 0.35) !important;
+    border-radius: 9px;
+}
+.status.error {
+    color: var(--danger) !important;
+    background: rgba(255, 107, 94, 0.1) !important;
+    border: 1px solid rgba(255, 107, 94, 0.35) !important;
+    border-radius: 9px;
+}
+.status.warn {
+    color: var(--warn) !important;
+    background: rgba(224, 165, 75, 0.1) !important;
+    border: 1px solid rgba(224, 165, 75, 0.35) !important;
+    border-radius: 9px;
+}
+.empty { color: var(--muted) !important; }
+
+/* ---------- Tablas ---------- */
+.table-wrap {
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    overflow: auto;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+th {
+    background: var(--panel-2) !important;
+    color: var(--muted) !important;
+    font-family: "JetBrains Mono", monospace !important;
+    font-size: 0.72rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--line) !important;
+}
+
+td { border-bottom: 1px solid var(--line) !important; color: var(--ink); }
+tbody tr:hover { background: rgba(236, 234, 227, 0.04) !important; }
+
+/* ---------- Chips / badges ---------- */
 .tag,
 .badge {
-    border-radius: 999px;
+    background: var(--panel-2) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line);
+    border-radius: 999px !important;
+    font-family: "JetBrains Mono", monospace !important;
     font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
+/* ---------- Dashboard (index) ---------- */
+.module-link {
+    background: var(--bg) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--steel) !important;
+    border-radius: 9px !important;
+    text-transform: none;
+}
+.module-link:hover,
+.module-link:focus {
+    border-color: var(--brand) !important;
+    background: var(--panel-2) !important;
+}
+.module-link span { color: var(--muted) !important; }
+
+.role-card p,
+.pattern-card p { color: var(--muted) !important; }
+
+.pattern-card {
+    background: var(--bg) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 10px !important;
+}
+.pattern-card code { color: var(--brand-dark) !important; font-family: "JetBrains Mono", monospace; }
+
+/* ---------- Datos numéricos (progreso/reportes) ---------- */
+.metrics strong,
+.summary strong,
+.metric-value { font-family: "JetBrains Mono", monospace !important; color: var(--brand-dark); }
+
+/* ---------- Responsive heredado ---------- */
 @media (max-width: 720px) {
-    header {
-        padding-left: 18px !important;
-        padding-right: 18px !important;
-    }
-
-    main {
-        width: min(100% - 24px, 1180px) !important;
-        margin-top: 18px !important;
-    }
-
-    .panel-header {
-        padding: 16px !important;
-    }
-
-    .actions {
-        align-items: stretch !important;
-        flex-direction: column !important;
-    }
-
+    .actions { align-items: stretch !important; flex-direction: column !important; }
     .actions button,
     .actions a,
     .primary,
     .secondary,
-    .danger {
-        width: 100%;
-        justify-content: center;
-    }
+    .danger { width: 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
 }
