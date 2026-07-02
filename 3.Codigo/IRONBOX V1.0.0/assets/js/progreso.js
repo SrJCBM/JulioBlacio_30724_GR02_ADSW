@@ -124,11 +124,12 @@
             {
                 label: 'Puntuacion',
                 data: datos.puntuaciones,
-                borderColor: '#b8232f',
-                backgroundColor: 'rgba(184, 35, 47, 0.12)',
+                borderColor: '#e8542a',
+                backgroundColor: 'rgba(232, 84, 42, 0.16)',
                 tension: 0.28,
                 fill: true,
                 pointRadius: 4,
+                pointBackgroundColor: '#e8542a',
             },
         ];
 
@@ -136,12 +137,17 @@
             datasets.push({
                 label: 'Peso',
                 data: datos.pesos,
-                borderColor: '#1f6feb',
-                backgroundColor: 'rgba(31, 111, 235, 0.08)',
+                borderColor: '#6ea8fe',
+                backgroundColor: 'rgba(110, 168, 254, 0.10)',
                 tension: 0.28,
                 pointRadius: 4,
+                pointBackgroundColor: '#6ea8fe',
             });
         }
+
+        const tinta = '#eceae3';
+        const tenue = '#8a929e';
+        const rejilla = 'rgba(236, 234, 227, 0.08)';
 
         graficoEvolucion = new Chart(graficoCanvas, {
             type: 'line',
@@ -152,11 +158,24 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                color: tinta,
                 plugins: {
-                    legend: { position: 'bottom' },
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: tinta },
+                    },
+                    tooltip: { titleColor: tinta, bodyColor: tinta },
                 },
                 scales: {
-                    y: { beginAtZero: true },
+                    x: {
+                        ticks: { color: tenue },
+                        grid: { color: rejilla },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: tenue },
+                        grid: { color: rejilla },
+                    },
                 },
             },
         });
