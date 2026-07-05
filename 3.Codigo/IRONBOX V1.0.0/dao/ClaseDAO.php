@@ -103,6 +103,22 @@ class ClaseDAO
         return $sentencia->fetchAll();
     }
 
+    public function buscarEntrenadorPorCorreo(string $correo): ?array
+    {
+        $this->sincronizarEntrenadoresDesdeUsuarios();
+
+        $sentencia = $this->conexion->prepare(
+            'SELECT id, nombre, correo, disponible
+               FROM entrenadores
+              WHERE lower(correo) = :correo
+              LIMIT 1'
+        );
+        $sentencia->execute(['correo' => strtolower(trim($correo))]);
+        $fila = $sentencia->fetch();
+
+        return $fila ?: null;
+    }
+
     public function entrenadorExisteYDisponible(int $entrenadorId): bool
     {
         $this->sincronizarEntrenadoresDesdeUsuarios();

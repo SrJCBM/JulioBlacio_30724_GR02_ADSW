@@ -25,6 +25,7 @@ try {
 
     switch ($accion) {
         case 'atletas':
+            authRequerirRol(['Administrador', 'Entrenador']);
             responderProgreso(['success' => true, 'data' => $service->listarAtletas()]);
             break;
 

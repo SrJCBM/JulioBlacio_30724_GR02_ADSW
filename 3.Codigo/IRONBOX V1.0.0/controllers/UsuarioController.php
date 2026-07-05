@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/../services/UsuarioService.php';
+require_once __DIR__ . '/../services/MembresiaService.php';
+require_once __DIR__ . '/../dao/MembresiaDAO.php';
 require_once __DIR__ . '/../includes/Auth.php';
 require_once __DIR__ . '/../includes/Cors.php';
 
@@ -28,9 +30,10 @@ try {
         case 'crear':
             asegurarMetodoUsuario($metodo, ['POST']);
             $usuario = $service->crear($payload);
+            $avisoMembresia = asignarMembresiaInicial($usuario, $payload);
             responderUsuario([
                 'success' => true,
-                'message' => 'Usuario creado correctamente.',
+                'message' => 'Usuario creado correctamente.' . $avisoMembresia,
                 'data' => $usuario->toArray(),
             ], 201);
             break;
@@ -87,6 +90,41 @@ function asegurarMetodoUsuario(string $metodo, array $permitidos): void
 {
     if (!in_array($metodo, $permitidos, true)) {
         throw new InvalidArgumentException('Metodo HTTP no permitido para esta operacion.');
+    }
+}
+
+function asignarMembresiaInicial(Usuario $usuario, array $payload): string
+{
+    // Orquestacion entre modulos: tras crear el usuario Atleta (que sincroniza
+    // su fila en 'atletas'), se le asigna una membresia opcional en el mismo paso.
+    $datos = $payload['membresia'] ?? null;
+    if (!is_array($datos) || $usuario->getRol() !== 'Atleta') {
+        return '';
+    }
+
+    $tipo = trim((string) ($datos['tipo'] ?? ''));
+    if ($tipo === '') {
+        return '';
+    }
+
+    try {
+        $atleta = (new MembresiaDAO())->buscarAtletaPorCorreo($usuario->getCorreo());
+        if (!$atleta) {
+            return ' Nota: el usuario se creo, pero aun no se pudo asignar la membresia.';
+        }
+
+        $precio = $datos['precio'] ?? null;
+        (new MembresiaService())->crear([
+            'idAtleta' => (int) $atleta['id'],
+            'tipo' => $tipo,
+            'precio' => ($precio === null || $precio === '') ? 0 : $precio,
+            'fechaInicio' => !empty($datos['fechaInicio']) ? $datos['fechaInicio'] : date('Y-m-d'),
+            'estado' => $datos['estado'] ?? 'Pendiente',
+        ]);
+
+        return ' Membresia asignada.';
+    } catch (Throwable $error) {
+        return ' Nota: el usuario se creo, pero no se pudo asignar la membresia (' . $error->getMessage() . ').';
     }
 }
 

@@ -81,6 +81,17 @@ try {
             ]);
             break;
 
+        case 'solicitar':
+            authRequerirRol(['Atleta']);
+            asegurarPostMembresia();
+            $membresia = $service->solicitar(obtenerIdAtletaMembresia($payload));
+            responderMembresia([
+                'success' => true,
+                'message' => 'Solicitud de membresia enviada correctamente.',
+                'data' => $membresia->toArray(),
+            ], 201);
+            break;
+
         case 'pagarMembresia':
             authRequerirRol(['Atleta']);
             asegurarPostMembresia();

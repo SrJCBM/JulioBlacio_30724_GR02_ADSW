@@ -4,7 +4,6 @@
     const API_URL = '../controllers/ProgresoController.php';
 
     const form = document.getElementById('progresoAtletaForm');
-    const atletaSelect = document.getElementById('idAtleta');
     const fechaInput = document.getElementById('fecha');
     const tiempoInput = document.getElementById('tiempo');
     const repeticionesInput = document.getElementById('repeticiones');
@@ -25,7 +24,6 @@
 
     document.addEventListener('DOMContentLoaded', iniciar);
     form.addEventListener('submit', guardarEntrenamiento);
-    atletaSelect.addEventListener('change', cargarHistorial);
     clearButton.addEventListener('click', () => limpiarFormulario());
     nuevaButton.addEventListener('click', nuevoRegistro);
     drawerClose.addEventListener('click', cerrarFormulario);
@@ -66,29 +64,15 @@
             fechaInput.max = new Date().toISOString().slice(0, 10);
         }
         fechaInput.value = obtenerFechaActual();
-        await cargarAtletas();
-        preseleccionarAtletaDesdeUrl();
+        // El progreso se resuelve por la sesion del atleta en el servidor:
+        // no se envia ni selecciona idAtleta desde el cliente.
         await cargarHistorial();
-    }
-
-    async function cargarAtletas() {
-        const respuesta = await solicitar('atletas');
-        atletaSelect.innerHTML = '<option value="">Seleccione un atleta</option>';
-
-        respuesta.data.forEach((atleta) => {
-            const option = document.createElement('option');
-            option.value = atleta.id;
-            option.textContent = atleta.nombre;
-            atletaSelect.appendChild(option);
-        });
     }
 
     async function guardarEntrenamiento(evento) {
         evento.preventDefault();
 
-        const idAtleta = obtenerAtletaSeleccionado();
         const datos = {
-            idAtleta,
             fecha: fechaInput.value,
             tiempo: valorOpcional(tiempoInput.value),
             repeticiones: valorOpcional(repeticionesInput.value),
@@ -111,20 +95,12 @@
     }
 
     async function cargarHistorial() {
-        const idAtleta = obtenerAtletaSeleccionado();
         historialBody.innerHTML = '';
-
-        if (!idAtleta) {
-            emptyState.hidden = false;
-            emptyState.textContent = 'Seleccione un atleta para ver su historial.';
-            destruirGrafico();
-            return;
-        }
 
         try {
             const [historial, grafico] = await Promise.all([
-                solicitar('historialAtleta', { idAtleta }),
-                solicitar('obtenerDatosGrafico', { idAtleta }),
+                solicitar('historialAtleta'),
+                solicitar('obtenerDatosGrafico'),
             ]);
             renderizarHistorial(historial.data);
             renderizarGrafico(grafico.data);
@@ -227,14 +203,9 @@
         }
     }
 
-    function limpiarFormulario(mantenerAtleta) {
-        const atletaActual = atletaSelect.value;
+    function limpiarFormulario() {
         form.reset();
         fechaInput.value = obtenerFechaActual();
-
-        if (mantenerAtleta === false) {
-            atletaSelect.value = atletaActual;
-        }
     }
 
     async function solicitar(accion, parametros) {
@@ -260,19 +231,6 @@
         }
 
         return cuerpo;
-    }
-
-    function preseleccionarAtletaDesdeUrl() {
-        const parametros = new URLSearchParams(window.location.search);
-        const idAtleta = parametros.get('idAtleta') || parametros.get('id_atleta');
-
-        if (idAtleta) {
-            atletaSelect.value = idAtleta;
-        }
-    }
-
-    function obtenerAtletaSeleccionado() {
-        return Number(atletaSelect.value || 0);
     }
 
     function mostrarEstado(mensaje, tipo) {

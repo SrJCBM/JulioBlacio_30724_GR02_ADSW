@@ -2,17 +2,21 @@
     'use strict';
 
     const API_URL = '../controllers/ClaseController.php';
+    const MEMBRESIA_URL = '../controllers/MembresiaController.php';
 
     const atletaSelect = document.getElementById('idAtleta');
+    const selectorPanel = document.getElementById('selectorPanel');
     const refreshButton = document.getElementById('refreshButton');
     const statusMessage = document.getElementById('statusMessage');
     const clasesBody = document.getElementById('clasesBody');
     const reservasBody = document.getElementById('reservasBody');
     const clasesEmpty = document.getElementById('clasesEmpty');
     const reservasEmpty = document.getElementById('reservasEmpty');
+    const membresiaBanner = document.getElementById('membresiaBanner');
 
     let usarSesionAtleta = false;
     let usuarioActual = null;
+    let membresiaVigente = true;
 
     document.addEventListener('DOMContentLoaded', iniciar);
     atletaSelect.addEventListener('change', cargarPanelAtleta);
@@ -23,9 +27,9 @@
         usarSesionAtleta = usuarioActual && usuarioActual.rol === 'Atleta';
 
         if (usarSesionAtleta) {
-            await cargarAtletas();
-            preseleccionarAtletaPorCorreo(usuarioActual.correo);
-            atletaSelect.disabled = true;
+            // El atleta opera sobre su propia sesion: no se carga ni se expone
+            // la lista de atletas, y el panel selector se oculta por completo.
+            selectorPanel.hidden = true;
             await cargarPanelAtleta();
             return;
         }
@@ -57,6 +61,7 @@
             reservasEmpty.hidden = false;
             clasesEmpty.textContent = 'Seleccione un atleta para ver clases disponibles.';
             reservasEmpty.textContent = 'Seleccione un atleta para ver sus reservas.';
+            ocultarBanner();
             return;
         }
 
@@ -65,11 +70,111 @@
                 solicitar('clases', idAtleta ? { idAtleta } : {}),
                 solicitar('misReservas', idAtleta ? { idAtleta } : {}),
             ]);
+            // El banner se resuelve antes de pintar para saber si se pueden
+            // habilitar los botones de reserva (requiere membresia vigente).
+            await actualizarBannerMembresia(idAtleta);
             renderizarClases(clases.data);
             renderizarReservas(reservas.data);
         } catch (error) {
             mostrarEstado(error.message, 'error');
         }
+    }
+
+    async function actualizarBannerMembresia(idAtleta) {
+        try {
+            const params = new URLSearchParams({ action: 'miMembresia' });
+            if (!usarSesionAtleta && idAtleta) {
+                params.set('idAtleta', idAtleta);
+            }
+
+            const respuesta = await fetch(`${MEMBRESIA_URL}?${params.toString()}`);
+            const cuerpo = await respuesta.json();
+            renderBannerMembresia(respuesta.ok && cuerpo.success ? cuerpo.data : null);
+        } catch (error) {
+            // Ante un error transitorio no bloqueamos: el servidor valida igual.
+            membresiaVigente = true;
+            ocultarBanner();
+        }
+    }
+
+    function renderBannerMembresia(membresia) {
+        const vigente = membresia
+            && membresia.estado === 'Pagado'
+            && membresia.fechaVencimiento >= hoyISO();
+
+        membresiaVigente = vigente;
+
+        if (vigente) {
+            pintarBanner('ok',
+                `Membresia ${membresia.tipo} activa. Vence el ${formatearFecha(membresia.fechaVencimiento)}.`, false);
+            return;
+        }
+
+        if (membresia && membresia.estado === 'Pendiente') {
+            pintarBanner('warn',
+                'Tu solicitud de membresia esta pendiente de aprobacion del administrador.', false);
+            return;
+        }
+
+        let mensaje;
+        if (membresia && membresia.estado === 'Vencido') {
+            mensaje = 'Tu membresia esta vencida. Solicita una nueva para seguir reservando.';
+        } else {
+            mensaje = 'No tienes una membresia activa. Solicita una para poder reservar.';
+        }
+        pintarBanner('warn', mensaje, true);
+    }
+
+    function pintarBanner(tipo, texto, conBoton) {
+        membresiaBanner.className = `banner ${tipo}`;
+        membresiaBanner.hidden = false;
+        membresiaBanner.innerHTML = '';
+
+        const span = document.createElement('span');
+        span.className = 'banner-text';
+        span.textContent = texto;
+        membresiaBanner.appendChild(span);
+
+        // El CTA de autoservicio solo aplica a la propia sesion del atleta.
+        if (conBoton && usarSesionAtleta) {
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.className = 'primary btn-sm';
+            boton.id = 'solicitarMembresiaButton';
+            boton.textContent = 'Solicitar membresia';
+            boton.addEventListener('click', solicitarMembresia);
+            membresiaBanner.appendChild(boton);
+        }
+    }
+
+    async function solicitarMembresia(evento) {
+        const boton = evento.currentTarget;
+        try {
+            boton.disabled = true;
+            const respuesta = await fetch(`${MEMBRESIA_URL}?action=solicitar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+            });
+            const cuerpo = await respuesta.json();
+            if (!respuesta.ok || cuerpo.success === false) {
+                throw new Error(cuerpo.message || 'No se pudo enviar la solicitud.');
+            }
+            mostrarEstado('Solicitud enviada. El administrador la revisara pronto.', 'ok');
+            await cargarPanelAtleta();
+        } catch (error) {
+            mostrarEstado(error.message, 'error');
+            boton.disabled = false;
+        }
+    }
+
+    function ocultarBanner() {
+        membresiaBanner.hidden = true;
+        membresiaBanner.innerHTML = '';
+    }
+
+    function hoyISO() {
+        return new Date().toISOString().slice(0, 10);
     }
 
     function renderizarClases(clases) {
@@ -78,6 +183,11 @@
         clasesEmpty.textContent = 'No hay clases disponibles.';
 
         clases.forEach((clase) => {
+            const bloqueadaPorMembresia = !membresiaVigente && !clase.yaReservada;
+            const deshabilitada = clase.yaReservada || bloqueadaPorMembresia;
+            const etiqueta = clase.yaReservada ? 'Reservada' : 'Reservar';
+            const titulo = bloqueadaPorMembresia ? 'title="Necesitas una membresia activa para reservar."' : '';
+
             const fila = document.createElement('tr');
             fila.innerHTML = `
                 <td>${escaparHtml(formatearFecha(clase.dia))}</td>
@@ -91,9 +201,10 @@
                         class="primary"
                         data-action="reservar"
                         data-id="${clase.id}"
-                        ${clase.yaReservada ? 'disabled' : ''}
+                        ${deshabilitada ? 'disabled' : ''}
+                        ${titulo}
                     >
-                        ${clase.yaReservada ? 'Reservada' : 'Reservar'}
+                        ${etiqueta}
                     </button>
                 </td>
             `;
@@ -144,6 +255,8 @@
         } catch (error) {
             mostrarEstado(error.message, 'error');
             evento.currentTarget.disabled = false;
+            // Si el bloqueo fue por membresia, refresca el aviso accionable.
+            await actualizarBannerMembresia(idAtleta);
         }
     }
 
@@ -203,21 +316,6 @@
 
     function obtenerAtletaSeleccionado() {
         return Number(atletaSelect.value || 0);
-    }
-
-    function preseleccionarAtletaPorCorreo(correo) {
-        if (!correo) {
-            return;
-        }
-
-        const buscado = correo.trim().toLowerCase();
-        const option = Array.from(atletaSelect.options).find((item) => {
-            return (item.dataset.correo || '').toLowerCase() === buscado;
-        });
-
-        if (option) {
-            atletaSelect.value = option.value;
-        }
     }
 
     function mostrarEstado(mensaje, tipo) {

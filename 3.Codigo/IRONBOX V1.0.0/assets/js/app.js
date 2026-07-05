@@ -11,6 +11,8 @@
     const clasesBody = document.getElementById('clasesBody');
     const emptyState = document.getElementById('emptyState');
     const entrenadorSelect = document.getElementById('entrenadorId');
+    const entrenadorField = document.getElementById('entrenadorField');
+    const entrenadorPropioAviso = document.getElementById('entrenadorPropioAviso');
     const claseIdInput = document.getElementById('claseId');
     const diaInput = document.getElementById('dia');
     const horaInput = document.getElementById('hora');
@@ -22,6 +24,7 @@
     const drawerClose = document.getElementById('drawerClose');
 
     let clases = [];
+    let esEntrenador = false;
 
     document.addEventListener('DOMContentLoaded', iniciar);
     form.addEventListener('submit', guardarClase);
@@ -61,7 +64,33 @@
     }
 
     async function iniciar() {
+        const sesion = await obtenerSesion();
+        esEntrenador = Boolean(sesion && sesion.rol === 'Entrenador');
+
+        if (esEntrenador) {
+            // El entrenador se autoasigna: no se muestra el selector y el
+            // servidor fuerza su propio id al crear/editar la clase.
+            entrenadorField.hidden = true;
+            entrenadorSelect.removeAttribute('required');
+            entrenadorPropioAviso.hidden = false;
+            await cargarClases();
+            return;
+        }
+
         await Promise.all([cargarEntrenadores(), cargarClases()]);
+    }
+
+    async function obtenerSesion() {
+        try {
+            const respuesta = await fetch('../controllers/AuthController.php?action=me');
+            if (!respuesta.ok) {
+                return null;
+            }
+            const cuerpo = await respuesta.json();
+            return cuerpo.success ? cuerpo.data : null;
+        } catch (error) {
+            return null;
+        }
     }
 
     async function cargarEntrenadores() {

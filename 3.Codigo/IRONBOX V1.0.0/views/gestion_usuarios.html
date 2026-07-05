@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>IronClad Box | Gestion de usuarios</title>
-    <link rel="stylesheet" href="../assets/css/nav.css?v=4">
-    <link rel="stylesheet" href="../assets/css/app.css?v=4">
+    <link rel="stylesheet" href="../assets/css/nav.css?v=5">
+    <link rel="stylesheet" href="../assets/css/app.css?v=5">
 </head>
 <body>
     <header>
@@ -87,6 +87,32 @@
                 </label>
             </div>
 
+            <fieldset class="form-fieldset" id="membresiaFieldset" hidden>
+                <legend>Membresia inicial</legend>
+                <p class="help">Opcional. Asignala al crear el atleta para que pueda reservar de inmediato; dejala vacia para omitirla.</p>
+
+                <label for="membresiaTipo">Tipo de plan
+                    <input type="text" id="membresiaTipo" name="membresiaTipo" maxlength="80" placeholder="Ej. Mensual CrossFit">
+                </label>
+
+                <div class="form-row">
+                    <label for="membresiaPrecio">Precio
+                        <input type="number" id="membresiaPrecio" name="membresiaPrecio" min="0" max="100000" step="0.01" placeholder="0.00">
+                    </label>
+                    <label for="membresiaFechaInicio">Fecha de inicio
+                        <input type="date" id="membresiaFechaInicio" name="membresiaFechaInicio">
+                    </label>
+                </div>
+
+                <label for="membresiaEstado">Estado del pago
+                    <select id="membresiaEstado" name="membresiaEstado">
+                        <option value="Pendiente">Pendiente de pago</option>
+                        <option value="Pagado">Pagado</option>
+                    </select>
+                    <span class="help">"Pagado" habilita reservas de una vez; "Pendiente" espera el pago.</span>
+                </label>
+            </fieldset>
+
             <div class="actions">
                 <button type="submit" class="primary" id="submitButton">Guardar usuario</button>
                 <button type="button" class="secondary" id="cancelButton" hidden>Cancelar edicion</button>
@@ -94,7 +120,7 @@
         </form>
     </aside>
 
-    <script src="../assets/js/nav.js?v=4"></script>
-    <script src="../assets/js/usuarios.js?v=4"></script>
+    <script src="../assets/js/nav.js?v=5"></script>
+    <script src="../assets/js/usuarios.js?v=5"></script>
 </body>
 </html>

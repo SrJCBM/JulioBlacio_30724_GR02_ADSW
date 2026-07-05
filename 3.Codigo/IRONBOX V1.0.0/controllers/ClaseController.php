@@ -29,15 +29,17 @@ try {
             break;
 
         case 'crear':
-            authRequerirRol(['Administrador', 'Entrenador']);
+            $usuario = authRequerirRol(['Administrador', 'Entrenador']);
             asegurarMetodoPost();
+            $payload = forzarEntrenadorPropio($usuario, $payload);
             $clase = $service->crear($payload);
             responder(['success' => true, 'message' => 'Clase creada correctamente.', 'data' => $clase->toArray()], 201);
             break;
 
         case 'editar':
-            authRequerirRol(['Administrador', 'Entrenador']);
+            $usuario = authRequerirRol(['Administrador', 'Entrenador']);
             asegurarMetodoPost();
+            $payload = forzarEntrenadorPropio($usuario, $payload);
             $id = obtenerId($payload);
             $clase = $service->editar($id, $payload);
             responder(['success' => true, 'message' => 'Clase actualizada correctamente.', 'data' => $clase->toArray()]);
@@ -130,6 +132,21 @@ function obtenerId(array $payload): int
     }
 
     return $id;
+}
+
+function forzarEntrenadorPropio(array $usuario, array $payload): array
+{
+    // Un entrenador solo puede programar clases a su propio nombre: se ignora
+    // cualquier entrenadorId enviado por el cliente y se usa el de la sesion.
+    if (($usuario['rol'] ?? '') === 'Entrenador') {
+        $idEntrenador = (int) ($_SESSION['id_entrenador'] ?? 0);
+        if ($idEntrenador <= 0) {
+            throw new DomainException('No se pudo determinar tu perfil de entrenador. Vuelve a iniciar sesion.');
+        }
+        $payload['entrenadorId'] = $idEntrenador;
+    }
+
+    return $payload;
 }
 
 function obtenerIdAtleta(array $payload): int

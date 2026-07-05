@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>IronClad Box | Gestion de clases</title>
-    <link rel="stylesheet" href="../assets/css/nav.css?v=4">
-    <link rel="stylesheet" href="../assets/css/app.css?v=4">
+    <link rel="stylesheet" href="../assets/css/nav.css?v=5">
+    <link rel="stylesheet" href="../assets/css/app.css?v=5">
 </head>
 <body>
     <header>
@@ -70,12 +70,14 @@
                 </label>
             </div>
 
-            <label for="entrenadorId">Entrenador asignado <span class="req">*</span>
+            <label for="entrenadorId" id="entrenadorField">Entrenador asignado <span class="req">*</span>
                 <select id="entrenadorId" name="entrenadorId" required>
                     <option value="">Seleccione un entrenador</option>
                 </select>
                 <span class="help">Solo se listan entrenadores disponibles.</span>
             </label>
+
+            <p class="help" id="entrenadorPropioAviso" hidden>La clase se registrara a tu nombre automaticamente.</p>
 
             <div class="actions">
                 <button type="submit" class="primary" id="submitButton">Guardar clase</button>
@@ -84,7 +86,7 @@
         </form>
     </aside>
 
-    <script src="../assets/js/nav.js?v=4"></script>
-    <script src="../assets/js/app.js?v=4"></script>
+    <script src="../assets/js/nav.js?v=5"></script>
+    <script src="../assets/js/app.js?v=5"></script>
 </body>
 </html>

@@ -12,6 +12,11 @@
     const contrasenaInput = document.getElementById('contrasena');
     const rolSelect = document.getElementById('rol');
     const estadoSelect = document.getElementById('estado');
+    const membresiaFieldset = document.getElementById('membresiaFieldset');
+    const membresiaTipoInput = document.getElementById('membresiaTipo');
+    const membresiaPrecioInput = document.getElementById('membresiaPrecio');
+    const membresiaFechaInicioInput = document.getElementById('membresiaFechaInicio');
+    const membresiaEstadoSelect = document.getElementById('membresiaEstado');
     const submitButton = document.getElementById('submitButton');
     const cancelButton = document.getElementById('cancelButton');
     const statusMessage = document.getElementById('statusMessage');
@@ -28,6 +33,7 @@
     form.addEventListener('submit', guardarUsuario);
     cancelButton.addEventListener('click', cerrarFormulario);
     nuevaButton.addEventListener('click', nuevoUsuario);
+    rolSelect.addEventListener('change', actualizarVisibilidadMembresia);
     drawerClose.addEventListener('click', cerrarFormulario);
     scrim.addEventListener('click', cerrarFormulario);
     document.addEventListener('keydown', (evento) => {
@@ -83,6 +89,15 @@
 
         if (editando && datos.contrasena === '') {
             delete datos.contrasena;
+        }
+
+        if (!editando && rolSelect.value === 'Atleta' && membresiaTipoInput.value.trim() !== '') {
+            datos.membresia = {
+                tipo: membresiaTipoInput.value.trim(),
+                precio: membresiaPrecioInput.value,
+                fechaInicio: membresiaFechaInicioInput.value,
+                estado: membresiaEstadoSelect.value,
+            };
         }
 
         try {
@@ -182,7 +197,14 @@
         formTitle.textContent = 'Editar usuario';
         submitButton.textContent = 'Actualizar usuario';
         cancelButton.hidden = false;
+        actualizarVisibilidadMembresia();
         abrirDrawer();
+    }
+
+    function actualizarVisibilidadMembresia() {
+        // La membresia inicial solo aplica al crear un atleta nuevo.
+        const editando = Boolean(usuarioIdInput.value);
+        membresiaFieldset.hidden = editando || rolSelect.value !== 'Atleta';
     }
 
     function limpiarFormulario() {
@@ -195,6 +217,7 @@
         formTitle.textContent = 'Crear usuario';
         submitButton.textContent = 'Guardar usuario';
         cancelButton.hidden = true;
+        actualizarVisibilidadMembresia();
     }
 
     async function solicitar(accion) {

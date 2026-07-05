@@ -150,6 +150,34 @@ class MembresiaService
         return $membresiaCancelada;
     }
 
+    public function solicitar(int $idAtleta): Membresia
+    {
+        if ($idAtleta <= 0 || !$this->membresiaDAO->atletaExiste($idAtleta)) {
+            throw new InvalidArgumentException('Debe indicar un atleta valido.');
+        }
+
+        // Anti-duplicado: no permitir otra solicitud si ya hay una pendiente
+        // o una membresia pagada aun vigente.
+        $actual = $this->membresiaDAO->buscarActualPorAtleta($idAtleta);
+        if ($actual !== null) {
+            $estado = $actual->getEstado();
+            $bloquea = $estado === 'Pendiente'
+                || ($estado === 'Pagado' && $actual->getFechaVencimiento() >= date('Y-m-d'));
+
+            if ($bloquea) {
+                throw new DomainException('Ya tienes una solicitud pendiente o una membresia activa.');
+            }
+        }
+
+        return $this->crear([
+            'idAtleta' => $idAtleta,
+            'tipo' => 'Por definir',
+            'precio' => 0,
+            'fechaInicio' => date('Y-m-d'),
+            'estado' => 'Pendiente',
+        ]);
+    }
+
     private function actualizarVencidas(): void
     {
         $this->membresiaDAO->marcarVencidas(date('Y-m-d'));

@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/Auth.php';
 require_once __DIR__ . '/../includes/Cors.php';
 require_once __DIR__ . '/../services/UsuarioService.php';
 require_once __DIR__ . '/../dao/MembresiaDAO.php';
+require_once __DIR__ . '/../dao/ClaseDAO.php';
 
 header('Content-Type: application/json; charset=utf-8');
 aplicarCors();
@@ -42,6 +43,13 @@ try {
             $usuarioSesion = $usuario->toArray();
             $idAtleta = resolverIdAtletaSesion($usuarioSesion);
             authGuardarUsuario($usuarioSesion, $idAtleta);
+
+            $idEntrenador = resolverIdEntrenadorSesion($usuarioSesion);
+            if ($idEntrenador !== null) {
+                $_SESSION['id_entrenador'] = $idEntrenador;
+            } else {
+                unset($_SESSION['id_entrenador']);
+            }
 
             responderAuth(['success' => true, 'data' => $usuarioSesion]);
             break;
@@ -100,6 +108,18 @@ function resolverIdAtletaSesion(array $usuario): ?int
     $atleta = $dao->buscarAtletaPorCorreo((string) ($usuario['correo'] ?? ''));
 
     return $atleta ? (int) $atleta['id'] : null;
+}
+
+function resolverIdEntrenadorSesion(array $usuario): ?int
+{
+    if (($usuario['rol'] ?? '') !== 'Entrenador') {
+        return null;
+    }
+
+    $dao = new ClaseDAO();
+    $entrenador = $dao->buscarEntrenadorPorCorreo((string) ($usuario['correo'] ?? ''));
+
+    return $entrenador ? (int) $entrenador['id'] : null;
 }
 
 function responderAuth(array $respuesta, int $estadoHttp = 200): void
